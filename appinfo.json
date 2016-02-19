@@ -1,0 +1,36 @@
+{
+    "appKeys": {
+        "AppKeyReady": 0
+    },
+    "capabilities": [
+        "location",
+        "configurable"
+    ],
+    "companyName": "Graeme Robinson",
+    "enableMultiJS": true,
+    "longName": "Geocache Finder",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/GC.png",
+                "menuIcon": true,
+                "name": "GC",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            }
+        ]
+    },
+    "sdkVersion": "3",
+    "shortName": "GCFinder",
+    "targetPlatforms": [
+        "aplite",
+        "basalt",
+        "chalk"
+    ],
+    "uuid": "588cc29b-d4fb-4a93-95d5-33f0634d5757",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
