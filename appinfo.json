@@ -1,5 +1,7 @@
 {
     "appKeys": {
+        "AppKeyGeocacheList": 2,
+        "AppKeyGetGeocaches": 1,
         "AppKeyReady": 0
     },
     "capabilities": [
@@ -13,9 +15,19 @@
     "resources": {
         "media": [
             {
-                "file": "images/GC.png",
+                "characterRegex": "ABCD",
+                "file": "fonts/GeocachingLogo.ttf",
+                "name": "FONT_GEOCACHING_LOGO_48",
+                "targetPlatforms": [
+                    "aplite"
+                ],
+                "type": "font"
+            },
+            {
+                "file": "images/menu.png",
+                "memoryFormat": "1Bit",
                 "menuIcon": true,
-                "name": "GC",
+                "name": "MENU_ICON",
                 "targetPlatforms": null,
                 "type": "bitmap"
             }
@@ -24,9 +36,7 @@
     "sdkVersion": "3",
     "shortName": "GCFinder",
     "targetPlatforms": [
-        "aplite",
-        "basalt",
-        "chalk"
+        "aplite"
     ],
     "uuid": "588cc29b-d4fb-4a93-95d5-33f0634d5757",
     "versionLabel": "1.0",

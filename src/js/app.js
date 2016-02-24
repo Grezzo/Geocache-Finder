@@ -1,12 +1,11 @@
-/*Portions of this app have borrowed logic from c:geo's
-  gc connector, so credit for some of it goes to them*/
-
 //Suppress warnings about line continuations used in embedded config html
 /* jshint multistr: true */
 
 /*
-  TODO: Test on Android (cookies may not be passed on xmlHttpRequests)
-        Store credentials on watch
+  TODO: Test on Android (cookies may not be passed on xmlHttpRequests, and config page may not load)
+  currently tries to lo in as null is not configured
+        Store credentials on watch (not phone)
+        un(html)escape geocache names in search results
 */
 
 
@@ -14,79 +13,94 @@
 //PATTERN_LATLON = Pattern.compile("<span id=\"uxLatLon\"[^>]*>(.*?)</span>");
 //PATTERN_NAME = Pattern.compile("<span id=\"ctl00_ContentBody_CacheName\">(.*?)</span>");
 
-//PATTERN_PREMIUMMEMBERS = Pattern.compile("<p class=\"Warning NoBottomSpacing\"");
-
+//Pattern for parsing the logged in user:
 var PATTERN_LOGIN_NAME = /class="li-user-info"[^>]*>\W*?<span>(.*?)<\/span>/;
 
-//Patterns for parsing the result of a search (next):
+//Patterns for parsing the result of a search:
 var PATTERN_SEARCH_GEOCODE = /\|\W*(GC[0-9A-Z]+)[^\|]*\|/;
+var PATTERN_SEARCH_DISTANCE = /<span class="small NoWrap"><img[^>]+>[NSEW]+<br \/>([^<]+)<\/span>/;
+var PATTERN_SEARCH_NAME = /<span>([^<]+)<\/span><\/a>/;
 
-//STRING_PREMIUMONLY_2 = "Sorry, the owner of this listing has made it viewable to Premium Members only.";
-//STRING_PREMIUMONLY_1 = "has chosen to make this cache listing visible to Premium Members only.";
+
+
+
 
 function getNearbyGeocaches() {
   console.log("Getting location...");
-  navigator.geolocation.getCurrentPosition(
-    function(position) {
-      console.log("Your current position is:");
-      console.log("Latitude : " + position.coords.latitude);
-      console.log("Longitude: " + position.coords.longitude);
-      console.log("More or less " + position.coords.accuracy + " meters.");
+  var locationWatcher = navigator.geolocation.watchPosition( function(position) {
+    //if (position.coords.accuracy <= 50) {
+    if (position.coords.accuracy <= 1000) {
+      console.log("Location accuracy (" + position.coords.accuracy + "m) is good");
+      navigator.geolocation.clearWatch(locationWatcher);
       getCachesNearCoords(position.coords);
-    },
-    function(error) {
-      console.log("Error getting location");
-      console.log("Error was: " + error.message);
-    },
-    {
-      enableHighAccuracy: true,
-      maximumAge: 30000,
-      timeout: 10000
+    } else {
+      console.log("Location accuracy (" + position.coords.accuracy + "m) not good enough yet");
     }
-  );
+  });
 }
 
 function getCachesNearCoords(coords) {
-  
   var searchURL = "https://www.geocaching.com/seek/nearest.aspx?lat=" + coords.latitude + "&lng=" + coords.longitude;
+  console.log("Getting list of geocaches from " + searchURL);  
   var req = new XMLHttpRequest();
   req.open("GET", searchURL, false);
-  
-  req.addEventListener("error", function(error) {
-    console.log("There was an error fetching " + searchURL);
-    console.log("Error was: " + error.message);
-  });
-
-  req.addEventListener("load", function() {
-    //parse geocaches from geocaching.com using some
-    //of the same logic as c:geo's GCParser.java
-    var page = this.responseText;
-    var startPos = page.indexOf("<div id=\"ctl00_ContentBody_ResultsPanel\"");
-    startPos = page.indexOf("<table", startPos); //Start cut at <table> after div
-    var endPos = page.indexOf("ctl00_ContentBody_UnitTxt") -1; //end cut after </table>
+  req.send();
+  if (req.status === 200) {
+    //parse returned html
+    var page = req.responseText;
+    
+    //Get only rows of search results
+    var startPos = page.substring(0, page.indexOf("Data BorderTop")).lastIndexOf("<tr");
+    var endPos = page.indexOf("</table>", startPos);
     page = page.substring(startPos, endPos);
-    var rows = page.split("<tr class=");
-    rows.forEach(function(row) {
-      var match = row.match(PATTERN_SEARCH_GEOCODE);
-      if (match !== null) {
-        console.log(match[1]);
+  
+    //Split rows and parse them
+    var rows = page.split("</tr>");
+    // Remove last item in array because it's empty
+    rows.pop();
+    //var nearbyGeocaches = [];
+    var geocacheList = [];
+    rows.forEach(function(row, index) {
+      //Filter out premium caches
+      if (row.indexOf("Premium Member Only Cache") === -1) {
+        var geocode = row.match(PATTERN_SEARCH_GEOCODE)[1];
+        var name = row.match(PATTERN_SEARCH_NAME)[1];
+        var distance = row.match(PATTERN_SEARCH_DISTANCE)[1];
+        geocacheList.push(geocode + "|" + name + "|" + distance);
+        //nearbyGeocaches.push({
+          //Name: row.match(PATTERN_SEARCH_NAME)[1],
+          //Geocode: row.match(PATTERN_SEARCH_GEOCODE)[1],
+          //Distance: row.match(PATTERN_SEARCH_DISTANCE)[1]
+        //});
       }
     });
-  });
-  
-  console.log("Getting list of geocaches from " + searchURL);  
-  req.send();
+    var geocacheListAsString = geocacheList.join("~");
+    console.log("Got a list of Geocaches:");
+    console.log(geocacheListAsString);
+
+    //Tell pebble that I've got a bunch of nearby geocaches
+    console.log("Telling Pebble");
+    Pebble.sendAppMessage({ 'AppKeyGeocacheList': geocacheListAsString },
+                          function(e) {
+                            console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
+                          },
+                          function(e) {
+                            console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
+                                        ' Error is: ' + e.data.error.message);
+                          });
+  }
 }
 
-function getCacheLocation(cacheID) {
+/*function getCacheDetails(cacheID) {
   var URL = "https://www.geocaching.com/seek/cache_details.aspx?wp=" + cacheID;
   var req = new XMLHttpRequest();
   req.open("GET", URL, false);
-  req.addEventListener("load", function() {
+  if (req.status === 200) {
     console.log(this.responseText);
-  });
+  }
   req.send();
-}
+}*/
+
 
 
 //------------------------------------------
@@ -98,6 +112,21 @@ function caseInsensitiveCompare(str1, str2) {
 }
 
 
+
+// Calculate distance between two coords.
+// Code taken from http://www.htmlgoodies.com/beyond/javascript/calculate-the-distance-between-two-points-in-your-web-apps.html
+/*function distance(lat1, lon1, lat2, lon2) {
+        var radlat1 = Math.PI * lat1/180;
+        var radlat2 = Math.PI * lat2/180;
+        var theta = lon1-lon2;
+        var radtheta = Math.PI * theta/180;
+        var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+        dist = Math.acos(dist);
+        dist = dist * 180/Math.PI;
+        dist = dist * 60 * 1.1515;
+        dist = dist * 1609.344;
+        return dist;
+}*/
 
 
 
@@ -180,6 +209,28 @@ function logInToGeocaching() {
 
 
 
+//------------------------------------------
+//----------------Messaging-----------------
+//------------------------------------------
+
+// Set callback for appmessage events
+Pebble.addEventListener('appmessage', function(e) {
+  console.log('JS received message from pebble');
+  if (e.payload.AppKeyGetGeocaches) {
+    console.log("...and it says to get geocaches!");
+    logInToGeocaching();
+    getNearbyGeocaches();
+    //fetchStockQuote(symbol, true);
+  //} else if (e.payload.QuoteKeyFetch) {
+    //fetchStockQuote(symbol, false);
+  //} else if (e.payload.QuoteKeySymbol) {
+    //symbol = e.payload.QuoteKeySymbol;
+    //localStorage.setItem('symbol', symbol);
+    //fetchStockQuote(symbol, false);
+  }
+});
+
+
 
 
 
@@ -194,19 +245,13 @@ Pebble.addEventListener("ready", function(e) {
 
   // Notify the watchapp that it is now safe to send messages
   Pebble.sendAppMessage({ 'AppKeyReady': true },
-  function(e) {
-    console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
-  },
-  function(e) {
-    console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
-                ' Error is: ' + e.data.error.message);
-  }
-);
-
-  //console.log("loaded: " + localStorage.getItem("username") + " and password from storage");
-  //logInToGeocaching();
-  //getCacheLocation("GC1GZ1B");
-  //getNearbyGeocaches();
+                        function(e) {
+                          console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
+                        },
+                        function(e) {
+                          console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
+                                      ' Error is: ' + e.data.error.message);
+                        });
 });
 
 
@@ -266,6 +311,10 @@ Pebble.addEventListener('webviewclosed', function(e) {
     
     console.log("Config updated");
     
+    logInToGeocaching();
+  }
+});
+
     
     /*
     //Prepare AppMessage payload
@@ -281,7 +330,3 @@ Pebble.addEventListener('webviewclosed', function(e) {
       console.log('Failed to send config data');
     });
     */
-    
-    logInToGeocaching();
-  }
-});
