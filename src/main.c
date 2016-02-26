@@ -1,5 +1,8 @@
 #include <pebble.h>
 
+
+
+
 /*
 TODO:
 detect connection to phone going away
@@ -12,6 +15,16 @@ typedef enum {
   AppKeyGeocacheList
 } AppKey;
 
+
+typedef struct{
+  char *geocode;
+  char *name;
+  char *distance;
+} Geocache;
+
+static Geocache s_geocaches[20];
+static int numberOfGeocaches;
+
 static Window *s_main_window;
 static TextLayer *s_title_layer;
 static TextLayer *s_message_layer;
@@ -20,6 +33,8 @@ static TextLayer *s_status_layer;
 static Window *s_menu_window;
 static MenuLayer *s_menu_layer;
 static char s_message[1000];
+
+
 
 
 
@@ -108,28 +123,22 @@ static void main_window_deinit() {
 //---------------Menu Window----------------
 //------------------------------------------
 
+static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+  // Use the row to specify which item will receive the select action
+  int row = cell_index->row;
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s selected", s_geocaches[row].geocode);
+}
+
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-  return 3;
+  return numberOfGeocaches;
 }
 
 static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-
-  // Use the row to specify which item we'll draw
-  switch (cell_index->row) {
-    case 0:
-    // This is a basic menu item with a title and subtitle
-    menu_cell_basic_draw(ctx, cell_layer, "Basic Item", "With a subtitle", NULL);
-    break;
-    case 1:
-    // This is a basic menu item with a title and subtitle
-    menu_cell_basic_draw(ctx, cell_layer, "Icon Item", "Select to cycle", NULL);
-    break;
-    case 2:
-    // Here we use the graphics context to draw something different
-    // In this case, we show a strip of a watchface's background
-    menu_cell_basic_draw(ctx, cell_layer, "Icon Item", "Select to run", NULL);
-    break;
-  }
+  int row = cell_index->row;
+  char *title = s_geocaches[row].name;
+  char subtitle[20];
+  snprintf(subtitle, 20, "%s - %s", s_geocaches[row].geocode, s_geocaches[row].distance);
+  menu_cell_basic_draw(ctx, cell_layer, title, subtitle, NULL);
 }
 
 static void menu_window_load(Window *window) {
@@ -139,8 +148,8 @@ static void menu_window_load(Window *window) {
   
   menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks){
     .get_num_rows = menu_get_num_rows_callback,
-    .draw_row = menu_draw_row_callback, //must implement
-    //.select_click = menu_select_callback,  //Selects will be ignored
+    .draw_row = menu_draw_row_callback,
+    .select_click = menu_select_callback,
   });
 
   // Bind the menu layer's click config provider to the window for interactivity
@@ -174,12 +183,46 @@ static void menu_window_deinit() {
 
 
 
-
-
-
 //------------------------------------------
 //----------------Messaging-----------------
 //------------------------------------------
+
+char * getToken(char **source, char delim) {
+  //Set token to start of string
+  char *token = *source;
+  //Skip original string forwards to delim
+  while (**source != delim) ++*source;
+  //Replace delim with null so token stops there
+  **source = '\0';
+  //Advance original string past null to beginning of next token
+  ++*source;
+  //return token
+  return token;
+}
+
+void geocacheListToArray(char * list) {
+  
+  for (int i = 0; i < 20; i++) {
+    char * geocache = getToken(&list, (char)30);
+    char *geocode = getToken(&geocache, (char)31);
+    char *name = getToken(&geocache, (char)31);
+    char *distance = geocache;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "geocode %i: %s", i, geocode);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "name %i: %s", i, name);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "distance %i: %s\n", i, distance);
+    
+    s_geocaches[i] = (Geocache){
+      .geocode = geocode,
+      .name = name,
+      .distance = distance,
+    };
+  }
+  
+  numberOfGeocaches = 20;
+
+}
+
+
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *ready_tuple = dict_find(iter, AppKeyReady);
@@ -196,7 +239,10 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   } else if(geocache_list_tuple) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Got a list of geocaches");
     strcpy(s_message, geocache_list_tuple->value->cstring);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, s_message);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", s_message);
+    geocacheListToArray(s_message);
+    
+    
     //show menulist window here
     menu_window_init();
   }
@@ -218,9 +264,9 @@ int main(void) {
   app_message_open(1000, 1000);
   char buffer [50];
   snprintf(buffer, 50, "buffer is %lu", (unsigned long)app_message_inbox_size_maximum());
-  APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
   snprintf(buffer, 50, "buffer is %d", APP_MESSAGE_INBOX_SIZE_MINIMUM);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, buffer);
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
   main_window_init();
   app_event_loop();
   main_window_deinit();

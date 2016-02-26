@@ -1,11 +1,10 @@
-//Suppress warnings about line continuations used in embedded config html
-/* jshint multistr: true */
-
 /*
   TODO: Test on Android (cookies may not be passed on xmlHttpRequests, and config page may not load)
   currently tries to lo in as null is not configured
         Store credentials on watch (not phone)
-        un(html)escape geocache names in search results
+        choose whether to display premium caches
+        detect no config
+        pad geocaches to 20 and detect padded ones in c
 */
 
 
@@ -18,8 +17,8 @@ var PATTERN_LOGIN_NAME = /class="li-user-info"[^>]*>\W*?<span>(.*?)<\/span>/;
 
 //Patterns for parsing the result of a search:
 var PATTERN_SEARCH_GEOCODE = /\|\W*(GC[0-9A-Z]+)[^\|]*\|/;
-var PATTERN_SEARCH_DISTANCE = /<span class="small NoWrap"><img[^>]+>[NSEW]+<br \/>([^<]+)<\/span>/;
-var PATTERN_SEARCH_NAME = /<span>([^<]+)<\/span><\/a>/;
+var PATTERN_SEARCH_DISTANCE = /<span class="small NoWrap"><img[^>]+>[NSEW]+<br \/>\W*([^<]+)\W*<\/span>/;
+var PATTERN_SEARCH_NAME = /<span>\W*([^<]+)\W*<\/span><\/a>/;
 
 
 
@@ -64,17 +63,15 @@ function getCachesNearCoords(coords) {
       //Filter out premium caches
       if (row.indexOf("Premium Member Only Cache") === -1) {
         var geocode = row.match(PATTERN_SEARCH_GEOCODE)[1];
-        var name = row.match(PATTERN_SEARCH_NAME)[1];
+        var name = htmlUnescape(row.match(PATTERN_SEARCH_NAME)[1]);
         var distance = row.match(PATTERN_SEARCH_DISTANCE)[1];
-        geocacheList.push(geocode + "|" + name + "|" + distance);
-        //nearbyGeocaches.push({
-          //Name: row.match(PATTERN_SEARCH_NAME)[1],
-          //Geocode: row.match(PATTERN_SEARCH_GEOCODE)[1],
-          //Distance: row.match(PATTERN_SEARCH_DISTANCE)[1]
-        //});
+        var geocache = [geocode, name, distance];
+        //Join with ASCII unit separator
+        geocacheList.push(geocache.join(String.fromCharCode(31)));
       }
     });
-    var geocacheListAsString = geocacheList.join("~");
+    //Join with ASCII record separator
+    var geocacheListAsString = geocacheList.join(String.fromCharCode(30));
     console.log("Got a list of Geocaches:");
     console.log(geocacheListAsString);
 
@@ -111,7 +108,13 @@ function caseInsensitiveCompare(str1, str2) {
   return (str1.toUpperCase() === str2.toUpperCase());
 }
 
-
+function htmlUnescape(string) {
+  string = string.replace("&amp;", "&");
+  string = string.replace("&#39;", "'");
+  console.log(string);
+  //could do this better. especially with numbers! Maybe get a list of entities from a node.js library
+  return string;
+}
 
 // Calculate distance between two coords.
 // Code taken from http://www.htmlgoodies.com/beyond/javascript/calculate-the-distance-between-two-points-in-your-web-apps.html
@@ -266,6 +269,10 @@ Pebble.addEventListener("ready", function(e) {
 //------------------------------------------
 
 Pebble.addEventListener('showConfiguration', function(e) {
+  
+  //Suppress warnings about line continuations used in embedded config html
+  /* jshint multistr: true */
+  
   // Show config page
   var configPage = "\
 <html><head>\
@@ -285,15 +292,22 @@ window.addEventListener(\"DOMContentLoaded\", function() {\
 You must enter your geocaching.com credentials in order to use this app.<br/><br/>\
 Your credentials are not sent anywhere (except over an encrypted connection to geocaching.com), and are only stored on your watch.<br/><br/>\
 <table><tr>\
-<td>Username</td>\
+<td>Geocaching.com Username</td>\
 <td><input id=\"username\"></td>\
 </tr><tr>\
-<td>Password</td>\
+<td>Geocaching.com Password</td>\
 <td><input type=\"password\" id=\"password\"></td>\
+</tr><tr>\
+<td>Show Premium Caches</td>\
+<td><input type=\"checkbox\" id=\"premium\"></td>\
 </tr></table>\
 <input type=\"button\" value=\"Save\" id=\"saveButton\">\
 </body></html>\
 ";
+  
+  // Turn warnings back on
+  /* jshint multistr: false */
+  
   console.log("Loading configuration page");
   Pebble.openURL("data:text/html," + encodeURIComponent(configPage));
 });
