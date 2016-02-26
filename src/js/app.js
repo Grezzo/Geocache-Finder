@@ -3,6 +3,7 @@
   currently tries to lo in as null is not configured
         Store credentials on watch (not phone)
         choose whether to display premium caches
+        decide whether to filter found caches
         detect no config
         pad geocaches to 20 and detect padded ones in c
 */
@@ -27,8 +28,8 @@ var PATTERN_SEARCH_NAME = /<span>\W*([^<]+)\W*<\/span><\/a>/;
 function getNearbyGeocaches() {
   console.log("Getting location...");
   var locationWatcher = navigator.geolocation.watchPosition( function(position) {
-    //if (position.coords.accuracy <= 50) {
-    if (position.coords.accuracy <= 1000) {
+    if (position.coords.accuracy <= 100) {
+    //if (position.coords.accuracy <= 1000) {
       console.log("Location accuracy (" + position.coords.accuracy + "m) is good");
       navigator.geolocation.clearWatch(locationWatcher);
       getCachesNearCoords(position.coords);

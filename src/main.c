@@ -6,7 +6,8 @@
 /*
 TODO:
 detect connection to phone going away
-change text before screen changes to menu
+change text before screen changes to menu, or when menu layer is closing window
+figure out why image isn't drawn
 */
 
 typedef enum {
@@ -26,8 +27,8 @@ static Geocache s_geocaches[20];
 static int numberOfGeocaches;
 
 static Window *s_main_window;
-static TextLayer *s_title_layer;
-static TextLayer *s_message_layer;
+static BitmapLayer *s_bitmap_layer;
+static GBitmap *s_bitmap;
 static TextLayer *s_status_layer;
 
 static Window *s_menu_window;
@@ -50,7 +51,7 @@ static void get_geocaches_click_handler(ClickRecognizerRef recognizer, void *con
   dict_write_int(iter, AppKeyGetGeocaches, &dummy_val, sizeof(int), true);
   dict_write_end(iter);
   app_message_outbox_send();
-  text_layer_set_text(s_status_layer, "Getting nearest geocaches...");
+  text_layer_set_text(s_status_layer, "Getting geocaches...");
 }
 
 static void main_window_click_config_provider(void *context) {
@@ -64,36 +65,33 @@ static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
   
+  s_bitmap_layer = bitmap_layer_create(GRect(0, 0, 144, 144));
+  s_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LARGE_LOGO);
+  bitmap_layer_set_bitmap(s_bitmap_layer, s_bitmap);
+  
   // Create the TextLayer with specific bounds
-  s_title_layer = text_layer_create(
-    GRect(0, 0, bounds.size.w, 50)
-  );
-  s_message_layer = text_layer_create(
-    GRect(0, 50, bounds.size.w, 50)
-  );
-  s_status_layer = text_layer_create(
-    GRect(0, 100, bounds.size.w, 50)
+   s_status_layer = text_layer_create(
+    GRect(0, 144, bounds.size.w, 50)
   );
   
   //text_layer_set_background_color(s_time_layer, GColorClear);
   //text_layer_set_text_color(s_time_layer, GColorBlack);
-  text_layer_set_text(s_title_layer, "Geocache Finder");
-  text_layer_set_text(s_message_layer, "Please wait");
-  text_layer_set_text(s_status_layer, "Waiting for phone connection");
+  text_layer_set_text(s_status_layer, "Waiting for phone");
+  text_layer_set_text_alignment(s_status_layer, GTextAlignmentCenter);
+  
   //text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   
   // Add it as a child layer to the Window's root layer
-  layer_add_child(window_layer, text_layer_get_layer(s_title_layer));
-  layer_add_child(window_layer, text_layer_get_layer(s_message_layer));
+  layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_layer));
+  //layer_add_child(window_layer, text_layer_get_layer(s_title_layer));
   layer_add_child(window_layer, text_layer_get_layer(s_status_layer));
 }
 
 static void main_window_unload(Window *window) {
   // Destroy TextLayer
-  text_layer_destroy(s_title_layer);
-  text_layer_destroy(s_message_layer);
+  gbitmap_destroy(s_bitmap);
+  bitmap_layer_destroy(s_bitmap_layer);
   text_layer_destroy(s_status_layer);
-
 }
 
 static void main_window_init() {
@@ -174,6 +172,10 @@ static void menu_window_init() {
 
   // Show the Window on the watch, with animated=true
   window_stack_push(s_menu_window, true);
+  //Turn on light in case it too so long to get results that it had gone dark
+  light_enable_interaction();
+  //Vibrate to indicate that results are ready in case it took ages
+  vibes_short_pulse();
 }
 
 static void menu_window_deinit() {
@@ -233,7 +235,7 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if(ready_tuple) {
     // PebbleKit JS is ready! Safe to send messages
     APP_LOG(APP_LOG_LEVEL_DEBUG, "PebbleKit JS is ready!");
-    text_layer_set_text(s_status_layer, "Connected to Phone");
+    text_layer_set_text(s_status_layer, "Get Geocaches -->");
     //Make buttons on pebble do something now that it's ready
     window_set_click_config_provider(s_main_window, main_window_click_config_provider);
   } else if(geocache_list_tuple) {
@@ -245,6 +247,7 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     
     //show menulist window here
     menu_window_init();
+    text_layer_set_text(s_status_layer, "Get Geocaches -->");
   }
 }
 
