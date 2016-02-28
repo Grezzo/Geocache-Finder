@@ -6,8 +6,6 @@
 /*
 TODO:
 detect connection to phone going away
-change text before screen changes to menu, or when menu layer is closing window
-figure out why image isn't drawn
 */
 
 typedef enum {
@@ -128,6 +126,15 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 }
 
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
+  //Return number of non-empty records
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "asked for number of rows...");
+  for (int i = 0; i < 20; i++) {
+    if (strcmp(s_geocaches[i].geocode, "empty") == 0) {
+      APP_LOG(APP_LOG_LEVEL_DEBUG, "%i cells to display", i);
+      return i;
+    }
+  }
+  //If there are no "empty" records, there must be a full 20
   return numberOfGeocaches;
 }
 
@@ -189,6 +196,7 @@ static void menu_window_deinit() {
 //----------------Messaging-----------------
 //------------------------------------------
 
+//splits a string at a delimiter. Returns first token and advances source pointer to start of next token
 char * getToken(char **source, char delim) {
   //Set token to start of string
   char *token = *source;

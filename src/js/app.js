@@ -2,10 +2,9 @@
   TODO: Test on Android (cookies may not be passed on xmlHttpRequests, and config page may not load)
   currently tries to lo in as null is not configured
         Store credentials on watch (not phone)
-        choose whether to display premium caches
-        decide whether to filter found caches
-        detect no config
-        pad geocaches to 20 and detect padded ones in c
+detect no username/password
+detect no config
+        keep searching until 20 caches found AFTER filter applied
 */
 
 
@@ -28,8 +27,8 @@ var PATTERN_SEARCH_NAME = /<span>\W*([^<]+)\W*<\/span><\/a>/;
 function getNearbyGeocaches() {
   console.log("Getting location...");
   var locationWatcher = navigator.geolocation.watchPosition( function(position) {
-    if (position.coords.accuracy <= 100) {
-    //if (position.coords.accuracy <= 1000) {
+    //if (position.coords.accuracy <= 100) {
+    if (position.coords.accuracy <= 1000) {
       console.log("Location accuracy (" + position.coords.accuracy + "m) is good");
       navigator.geolocation.clearWatch(locationWatcher);
       getCachesNearCoords(position.coords);
@@ -61,8 +60,25 @@ function getCachesNearCoords(coords) {
     //var nearbyGeocaches = [];
     var geocacheList = [];
     rows.forEach(function(row, index) {
-      //Filter out premium caches
-      if (row.indexOf("Premium Member Only Cache") === -1) {
+      /*console.log(row.indexOf("Premium Member Only Cache") != -1);
+      console.log(localStorage.getItem("show_premium") === "true");
+      console.log(
+        (row.indexOf("Premium Member Only Cache") != -1) &&
+        (!localStorage.getItem("show_premium"))
+      );*/
+      
+        // && localStorage.getItem("show_premium") === false
+        //););
+      //Filter out premium/found caches
+      if (
+        !(
+          row.indexOf("Premium Member Only Cache") != -1 &&
+          localStorage.getItem("show_premium") === "false"
+        ) && !(
+          row.indexOf("Found It") != -1 &&
+          localStorage.getItem("show_found") === "false"
+        )
+      ) {
         var geocode = row.match(PATTERN_SEARCH_GEOCODE)[1];
         var name = htmlUnescape(row.match(PATTERN_SEARCH_NAME)[1]);
         var distance = row.match(PATTERN_SEARCH_DISTANCE)[1];
@@ -71,6 +87,11 @@ function getCachesNearCoords(coords) {
         geocacheList.push(geocache.join(String.fromCharCode(31)));
       }
     });
+    //Pad list to 20 records in case some were filtered
+    while (geocacheList.length < 20) {
+      geocacheList.push(["empty","empty","empty"].join(String.fromCharCode(31)));
+    }
+    
     //Join with ASCII record separator
     var geocacheListAsString = geocacheList.join(String.fromCharCode(30));
     console.log("Got a list of Geocaches:");
@@ -114,6 +135,7 @@ function htmlUnescape(string) {
   string = string.replace("&#39;", "'");
   console.log(string);
   //could do this better. especially with numbers! Maybe get a list of entities from a node.js library
+  //TODO: is &#39; not escaped if it's at the beginning like 'Hampshire Hoggin'?
   return string;
 }
 
@@ -274,36 +296,89 @@ Pebble.addEventListener('showConfiguration', function(e) {
   //Suppress warnings about line continuations used in embedded config html
   /* jshint multistr: true */
   
-  // Show config page
+  // Show config page (comment at end removes querystring if used in emulator)
   var configPage = "\
-<html><head>\
-<script>\
-window.addEventListener(\"DOMContentLoaded\", function() {\
-  document.getElementById(\"saveButton\").addEventListener(\"click\", function () {\
-    var config = {\
-      'username': document.getElementById(\"username\").value,\
-      'password': document.getElementById(\"password\").value,\
-    };\
-    location.href = 'pebblejs://close#' + encodeURIComponent(JSON.stringify(config));\
-  });\
-});\
-</script>\
-<style>body {font-family: sans-serif;}</style>\
-</head><body>\
-You must enter your geocaching.com credentials in order to use this app.<br/><br/>\
-Your credentials are not sent anywhere (except over an encrypted connection to geocaching.com), and are only stored on your watch.<br/><br/>\
-<table><tr>\
-<td>Geocaching.com Username</td>\
-<td><input id=\"username\"></td>\
-</tr><tr>\
-<td>Geocaching.com Password</td>\
-<td><input type=\"password\" id=\"password\"></td>\
-</tr><tr>\
-<td>Show Premium Caches</td>\
-<td><input type=\"checkbox\" id=\"premium\"></td>\
-</tr></table>\
-<input type=\"button\" value=\"Save\" id=\"saveButton\">\
-</body></html>\
+<html><head>\n\
+<style>\n\
+input[type=text], input[type=password] {\n\
+  height: 44px;\n\
+  font-size: 17px;\n\
+}\n\
+input[type=checkbox] {\n\
+ width: 44px;\n\
+ height: 44px;\n\
+}\n\
+input[type=button] {\n\
+ font-size: 30px;\n\
+ font-weight: bold;\n\
+ height: 44px;\n\
+ width: 100%;\n\
+}\n\
+</style>\n\
+<script>\n\
+// Get query variables\n\
+function getQueryParam(variable, defaultValue) {\n\
+  // Find all URL parameters\n\
+  var query = location.search.substring(1);\n\
+  var vars = query.split('&');\n\
+  for (var i = 0; i < vars.length; i++) {\n\
+    var pair = vars[i].split('=');\n\
+    // If the query variable parameter is found, decode it to use and return it for use\n\
+    if (pair[0] === variable) {\n\
+      return decodeURIComponent(pair[1]);\n\
+    }\n\
+  }\n\
+  return defaultValue || false;\n\
+}\n\
+\n\
+window.addEventListener(\"DOMContentLoaded\", function() {\n\
+  document.getElementById(\"saveButton\").addEventListener(\"click\", function () {\n\
+    document.getElementById(\"saveButton\").disabled = true;\n\
+    var config = {\n\
+      'update_login': document.getElementById(\"update_login\").checked,\n\
+      'username': document.getElementById(\"username\").value,\n\
+      'password': document.getElementById(\"password\").value,\n\
+      'show_premium': document.getElementById(\"show_premium\").checked,\n\
+      'show_found': document.getElementById(\"show_found\").checked\n\
+    };\n\
+    // Set the return URL depending on the runtime environment\n\
+    var return_to = getQueryParam('return_to', 'pebblejs://close#');\n\
+    location.href = return_to + encodeURIComponent(JSON.stringify(config));\n\
+  });\n\
+  document.getElementById(\"update_login\").addEventListener(\"click\", function () {\n\
+    var displayValue;\
+    if (document.getElementById(\"update_login\").checked) {\n\
+      displayValue = \"\";\n\
+    } else {\n\
+      displayValue = \"none\";\n\
+    };\n\
+    document.getElementById(\"username_row\").style.display = displayValue\n\
+    document.getElementById(\"password_row\").style.display = displayValue\n\
+  });\n\
+});\n\
+</script>\n\
+<style>body {font-family: sans-serif;}</style>\n\
+</head><body>\n\
+You must enter your geocaching.com credentials in order to use this app.<br/><br/>\n\
+Your credentials are only ever sent to geocaching.com over an encrypted (https) connection and are not sent anywhere else.<br/><br/>\n\
+<table><tr>\n\
+<td>Change Username and Password</td>\n\
+<td><input type=\"checkbox\" id=\"update_login\"></td>\n\
+</tr><tr id=\"username_row\" style=\"display: none\">\n\
+<td>Geocaching.com Username</td>\n\
+<td><input type=\"text\" id=\"username\" value=\"" + localStorage.getItem("username") + "\"></td>\n\
+</tr><tr id=\"password_row\" style=\"display: none\">\n\
+<td>Geocaching.com Password</td>\n\
+<td><input type=\"password\" id=\"password\"></td>\n\
+</tr><tr>\n\
+<td>Show Premium Caches</td>\n\
+<td><input type=\"checkbox\" id=\"show_premium\"" + (localStorage.getItem("show_premium") === "true" ? " checked" : "") + "></td>\n\
+</tr><tr>\n\
+<td>Show Found Caches</td>\n\
+<td><input type=\"checkbox\" id=\"show_found\"" + (localStorage.getItem("show_found") === "true" ? " checked" : "") + "></td>\n\
+</tr></table>\n\
+<input type=\"button\" value=\"Save\" id=\"saveButton\">\n\
+</body></html><!--\
 ";
   
   // Turn warnings back on
@@ -320,9 +395,14 @@ Pebble.addEventListener('webviewclosed', function(e) {
   } else {
     // Decode and parse config data as JSON
     var config_data = JSON.parse(decodeURIComponent(e.response));
-
-    localStorage.setItem("username", config_data.username);
-    localStorage.setItem("password", config_data.password);
+    if (config_data.update_login) {
+      localStorage.setItem("username", config_data.username);
+      localStorage.setItem("password", config_data.password);
+    }
+    //explicitly convert boolean to string before saving because that forces it to lower case. Otherwise
+    //emulator will converts to "True"/"False" when saving, and phone will convert to "true"/"false".
+    localStorage.setItem("show_premium", config_data.show_premium.toString());
+    localStorage.setItem("show_found", config_data.show_found.toString());
     
     console.log("Config updated");
     
