@@ -15,23 +15,32 @@ typedef enum {
 } AppKey;
 
 
+
 typedef struct{
   char *geocode;
   char *name;
   char *distance;
 } Geocache;
-
 static Geocache s_geocaches[20];
 static int numberOfGeocaches;
 
+//Buffer for message recieved from javascript
+static char s_message[1000];
+
+//Main window
 static Window *s_main_window;
-static BitmapLayer *s_bitmap_layer;
-static GBitmap *s_bitmap;
+static BitmapLayer *s_large_logo_layer;
+static GBitmap *s_large_logo;
+static ActionBarLayer *s_action_bar_layer;
+static GBitmap *s_list_icon;
+static GBitmap *s_settings_icon;
+static GBitmap *s_search_icon;
 static TextLayer *s_status_layer;
 
+//search results windw
 static Window *s_menu_window;
 static MenuLayer *s_menu_layer;
-static char s_message[1000];
+
 
 
 
@@ -54,7 +63,7 @@ static void get_geocaches_click_handler(ClickRecognizerRef recognizer, void *con
 
 static void main_window_click_config_provider(void *context) {
   // Register the ClickHandlers
-  window_single_click_subscribe(BUTTON_ID_DOWN, get_geocaches_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, get_geocaches_click_handler);
 }
 
 static void main_window_load(Window *window) {
@@ -63,13 +72,13 @@ static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
   
-  s_bitmap_layer = bitmap_layer_create(GRect(0, 0, 144, 144));
-  s_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LARGE_LOGO);
-  bitmap_layer_set_bitmap(s_bitmap_layer, s_bitmap);
+  s_large_logo_layer = bitmap_layer_create(GRect(0, 0, bounds.size.w - ACTION_BAR_WIDTH, bounds.size.h));
+  s_large_logo = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LARGE_LOGO);
+  bitmap_layer_set_bitmap(s_large_logo_layer, s_large_logo);
   
   // Create the TextLayer with specific bounds
-   s_status_layer = text_layer_create(
-    GRect(0, 144, bounds.size.w, 50)
+  s_status_layer = text_layer_create(
+    GRect(0, 180, bounds.size.w - ACTION_BAR_WIDTH, bounds.size.h)
   );
   
   //text_layer_set_background_color(s_time_layer, GColorClear);
@@ -80,16 +89,32 @@ static void main_window_load(Window *window) {
   //text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
   
   // Add it as a child layer to the Window's root layer
-  layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_layer));
+  layer_add_child(window_layer, bitmap_layer_get_layer(s_large_logo_layer));
   //layer_add_child(window_layer, text_layer_get_layer(s_title_layer));
   layer_add_child(window_layer, text_layer_get_layer(s_status_layer));
+  
+  s_action_bar_layer = action_bar_layer_create();
+  s_settings_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SETTINGS_ICON);
+  s_search_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SEARCH_ICON);
+  s_list_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LIST_ICON);
+  action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, s_list_icon);
+  action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, s_search_icon);
+  action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, s_settings_icon);
+  action_bar_layer_add_to_window(s_action_bar_layer, s_main_window);
 }
 
 static void main_window_unload(Window *window) {
   // Destroy TextLayer
-  gbitmap_destroy(s_bitmap);
-  bitmap_layer_destroy(s_bitmap_layer);
+  gbitmap_destroy(s_large_logo);
+  bitmap_layer_destroy(s_large_logo_layer);
   text_layer_destroy(s_status_layer);
+  gbitmap_destroy(s_settings_icon);
+  gbitmap_destroy(s_search_icon);
+  gbitmap_destroy(s_list_icon);
+  action_bar_layer_remove_from_window(s_action_bar_layer);
+  action_bar_layer_destroy(s_action_bar_layer);
+
+
 }
 
 static void main_window_init() {
@@ -165,6 +190,8 @@ static void menu_window_load(Window *window) {
 static void menu_window_unload(Window *window) {
   // Destroy MenuLayer
   menu_layer_destroy(s_menu_layer);
+  window_destroy(s_menu_window);
+
 }
 
 static void menu_window_init() {
@@ -184,13 +211,6 @@ static void menu_window_init() {
   //Vibrate to indicate that results are ready in case it took ages
   vibes_short_pulse();
 }
-
-static void menu_window_deinit() {
-  // Destroy Window
-  window_destroy(s_menu_window);
-}
-
-
 
 //------------------------------------------
 //----------------Messaging-----------------
@@ -243,9 +263,10 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if(ready_tuple) {
     // PebbleKit JS is ready! Safe to send messages
     APP_LOG(APP_LOG_LEVEL_DEBUG, "PebbleKit JS is ready!");
-    text_layer_set_text(s_status_layer, "Get Geocaches -->");
+    text_layer_set_text(s_status_layer, "");
     //Make buttons on pebble do something now that it's ready
-    window_set_click_config_provider(s_main_window, main_window_click_config_provider);
+    //window_set_click_config_provider(s_main_window, main_window_click_config_provider);
+    action_bar_layer_set_click_config_provider(s_action_bar_layer, main_window_click_config_provider);
   } else if(geocache_list_tuple) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Got a list of geocaches");
     strcpy(s_message, geocache_list_tuple->value->cstring);
@@ -255,7 +276,6 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     
     //show menulist window here
     menu_window_init();
-    text_layer_set_text(s_status_layer, "Get Geocaches -->");
   }
 }
 

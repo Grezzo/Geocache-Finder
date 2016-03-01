@@ -15,6 +15,24 @@
     "resources": {
         "media": [
             {
+                "file": "images/list_icon.png",
+                "name": "IMAGE_LIST_ICON",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            },
+            {
+                "file": "images/search_icon.png",
+                "name": "IMAGE_SEARCH_ICON",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            },
+            {
+                "file": "images/settings_icon.png",
+                "name": "IMAGE_SETTINGS_ICON",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            },
+            {
                 "file": "images/menu_icon.png",
                 "memoryFormat": "1Bit",
                 "menuIcon": true,
@@ -42,7 +60,9 @@
     "sdkVersion": "3",
     "shortName": "GCFinder",
     "targetPlatforms": [
-        "aplite"
+        "aplite",
+        "basalt",
+        "chalk"
     ],
     "uuid": "588cc29b-d4fb-4a93-95d5-33f0634d5757",
     "versionLabel": "1.0",
