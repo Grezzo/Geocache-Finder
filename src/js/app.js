@@ -361,6 +361,7 @@ window.addEventListener(\"DOMContentLoaded\", function() {\n\
 </head><body>\n\
 You must enter your geocaching.com credentials in order to use this app.<br/><br/>\n\
 Your credentials are only ever sent to geocaching.com over an encrypted (https) connection and are not sent anywhere else.<br/><br/>\n\
+If you don't have a password (i.e. you normally log in using Facebook), you will need to get one from https://www.geocaching.com/account/identify<br/><br/>\n\
 <table><tr>\n\
 <td>Change Username and Password</td>\n\
 <td><input type=\"checkbox\" id=\"update_login\"></td>\n\
