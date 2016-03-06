@@ -1,4 +1,6 @@
 #include <pebble.h>
+#include "cache_direction_window.h"
+#include "messaging.h"
 
 static void menu_window_init();
 
@@ -8,11 +10,7 @@ TODO:
 detect connection to phone going away
 */
 
-typedef enum {
-  AppKeyReady = 0,
-  AppKeyGetGeocaches,
-  AppKeyGeocacheList
-} AppKey;
+
 
 
 
@@ -52,19 +50,19 @@ static MenuLayer *s_menu_layer;
 
 static void get_geocaches_click_handler(ClickRecognizerRef recognizer, void *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "I should get geocaches now...");
-  DictionaryIterator *iter;
-  app_message_outbox_begin(&iter);
-  const int dummy_val = 1;
-  dict_write_int(iter, AppKeyGetGeocaches, &dummy_val, sizeof(int), true);
-  dict_write_end(iter);
-  app_message_outbox_send();
+//   DictionaryIterator *iter;
+//   app_message_outbox_begin(&iter);
+//   const int dummy_val = 1;
+//   dict_write_int(iter, AppKeyGetGeocaches, &dummy_val, sizeof(int), true);
+//   dict_write_end(iter);
+//   app_message_outbox_send();
+  send_message(AppKeyGetGeocaches);
   text_layer_set_text(s_status_layer, "Getting geocaches...");
 }
 
 static void main_window_click_config_provider(void *context) {
   // Register the ClickHandlers
   window_single_click_subscribe(BUTTON_ID_SELECT, get_geocaches_click_handler);
-  //window_single_click_subscribe(BUTTON_ID_SELECT, menu_window_init);
 }
 
 static void main_window_load(Window *window) {
@@ -144,6 +142,7 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   // Use the row to specify which item will receive the select action
   int row = cell_index->row;
   APP_LOG(APP_LOG_LEVEL_DEBUG, "%s selected", s_geocaches[row].geocode);
+  show_cache_direction_window(s_geocaches[cell_index->row].geocode);
 }
 
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
