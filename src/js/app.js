@@ -26,13 +26,11 @@ function getNearbyGeocaches() {
   console.log("Getting location...");
   var locationWatcher = navigator.geolocation.watchPosition( function(position) {
     var accuracy = 100;
-    //if (position.coords.accuracy <= 100) {
     
     if ((Pebble.getActiveWatchInfo().model.indexOf("qemu_platform_") != -1)) {
       console.log('Detected emulator in use, decreasing GPS accuracy');
       accuracy = 1000;
     }
-    
     
     if (position.coords.accuracy <= accuracy) {
       console.log("Location accuracy (" + position.coords.accuracy + "m) is good");
@@ -114,6 +112,7 @@ function getCacheDetails(geocode) {
   if (req.status === 200) {
     //console.log(req.responseText);
     var coords = req.responseText.match(PATTERN_LATLON)[1];
+    coords = coords.replace(" W", "\nW");
     console.log(coords);
     // Send coords to watch
     Pebble.sendAppMessage({ 'AppKeyCoords': coords },

@@ -6,10 +6,8 @@
 static TextLayer *s_textlayer;
 //static char* s_geocode;
 
-static void get_cache_details(char* geocode) {
-  text_layer_set_text(s_textlayer, geocode);
-  //send_message_to_js();
-  send_message_with_string(AppKeyGetCacheDetails, geocode);
+void show_geocache_coords(char *coords) {
+  text_layer_set_text(s_textlayer, coords);
 }
 
 static void handle_window_load(Window *window) {
@@ -33,7 +31,7 @@ void show_cache_direction_window(char *geocode) {
     .unload = handle_window_unload,
   });
   window_stack_push(window, true);
-  get_cache_details(geocode);
+  send_message_with_string(AppKeyGetCacheDetails, geocode);
 }
 
 void hide_cache_direction_window(void) {

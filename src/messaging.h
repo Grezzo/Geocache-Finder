@@ -6,6 +6,7 @@ typedef enum {
   AppKeyGetGeocaches,
   AppKeyGeocacheList,
   AppKeyGetCacheDetails,
+  AppKeyCoords,
 } AppKey;
 
 void send_message(const uint32_t key);

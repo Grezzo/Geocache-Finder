@@ -25,6 +25,9 @@ static int numberOfGeocaches;
 //Buffer for message recieved from javascript
 static char s_message[1000];
 
+//Buffer for coods recieved from JS
+static char s_coords_msg[40];
+
 //Main window
 static Window *s_main_window;
 static BitmapLayer *s_large_logo_layer;
@@ -257,8 +260,7 @@ void geocacheListToArray(char * list) {
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *ready_tuple = dict_find(iter, AppKeyReady);
   Tuple *geocache_list_tuple = dict_find(iter, AppKeyGeocacheList);
-  
-  
+  Tuple *coords_tuple = dict_find(iter, AppKeyCoords);  
   
   if(ready_tuple) {
     // PebbleKit JS is ready! Safe to send messages
@@ -272,10 +274,13 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     strcpy(s_message, geocache_list_tuple->value->cstring);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", s_message);
     geocacheListToArray(s_message);
-    
-    
-    //show menulist window here
+    //show menulist window
     menu_window_init();
+  } else if(coords_tuple) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Got coords");
+    strcpy(s_coords_msg, coords_tuple->value->cstring);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", s_coords_msg);
+    show_geocache_coords(s_coords_msg);
   }
 }
 
