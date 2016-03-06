@@ -1,6 +1,6 @@
 #include <pebble.h>
 
-
+static void menu_window_init();
 
 
 /*
@@ -64,6 +64,7 @@ static void get_geocaches_click_handler(ClickRecognizerRef recognizer, void *con
 static void main_window_click_config_provider(void *context) {
   // Register the ClickHandlers
   window_single_click_subscribe(BUTTON_ID_SELECT, get_geocaches_click_handler);
+  //window_single_click_subscribe(BUTTON_ID_SELECT, menu_window_init);
 }
 
 static void main_window_load(Window *window) {
@@ -72,25 +73,20 @@ static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
   
-  s_large_logo_layer = bitmap_layer_create(GRect(0, 0, bounds.size.w - ACTION_BAR_WIDTH, bounds.size.h));
+  s_large_logo_layer = bitmap_layer_create(GRect(0, 0, bounds.size.w - ACTION_BAR_WIDTH, 104));
   s_large_logo = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LARGE_LOGO);
   bitmap_layer_set_bitmap(s_large_logo_layer, s_large_logo);
   
   // Create the TextLayer with specific bounds
   s_status_layer = text_layer_create(
-    GRect(0, 180, bounds.size.w - ACTION_BAR_WIDTH, bounds.size.h)
+    GRect(0, 104, bounds.size.w - ACTION_BAR_WIDTH, bounds.size.h-104)
   );
-  
-  //text_layer_set_background_color(s_time_layer, GColorClear);
-  //text_layer_set_text_color(s_time_layer, GColorBlack);
-  text_layer_set_text(s_status_layer, "Waiting for phone");
   text_layer_set_text_alignment(s_status_layer, GTextAlignmentCenter);
-  
-  //text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
-  
+
+  text_layer_set_text(s_status_layer, "Waiting for phone");
+    
   // Add it as a child layer to the Window's root layer
   layer_add_child(window_layer, bitmap_layer_get_layer(s_large_logo_layer));
-  //layer_add_child(window_layer, text_layer_get_layer(s_title_layer));
   layer_add_child(window_layer, text_layer_get_layer(s_status_layer));
   
   s_action_bar_layer = action_bar_layer_create();
@@ -210,6 +206,7 @@ static void menu_window_init() {
   light_enable_interaction();
   //Vibrate to indicate that results are ready in case it took ages
   vibes_short_pulse();
+  text_layer_set_text(s_status_layer, "");
 }
 
 //------------------------------------------
@@ -221,7 +218,7 @@ char * getToken(char **source, char delim) {
   //Set token to start of string
   char *token = *source;
   //Skip original string forwards to delim
-  while (**source != delim) ++*source;
+  while (**source != delim && **source != 0) ++*source;
   //Replace delim with null so token stops there
   **source = '\0';
   //Advance original string past null to beginning of next token
@@ -234,9 +231,13 @@ void geocacheListToArray(char * list) {
   
   for (int i = 0; i < 20; i++) {
     char * geocache = getToken(&list, (char)30);
+    //char * geocache = "aaa";
     char *geocode = getToken(&geocache, (char)31);
+    //char *geocode = "bbb";
     char *name = getToken(&geocache, (char)31);
+    //char *name = "ccc";
     char *distance = geocache;
+    //char *distance = "ddd";
     APP_LOG(APP_LOG_LEVEL_DEBUG, "geocode %i: %s", i, geocode);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "name %i: %s", i, name);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "distance %i: %s\n", i, distance);
