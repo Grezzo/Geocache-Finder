@@ -1,6 +1,8 @@
 {
     "appKeys": {
+        "AppKeyCoords": 4,
         "AppKeyGeocacheList": 2,
+        "AppKeyGetCacheDetails": 3,
         "AppKeyGetGeocaches": 1,
         "AppKeyReady": 0
     },

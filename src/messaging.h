@@ -9,3 +9,4 @@ typedef enum {
 } AppKey;
 
 void send_message(const uint32_t key);
+void send_message_with_string(const uint32_t key, const char *const string);

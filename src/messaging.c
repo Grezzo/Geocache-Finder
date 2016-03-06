@@ -9,3 +9,11 @@ void send_message(const uint32_t key) {
   dict_write_end(iter);
   app_message_outbox_send();
 }
+
+void send_message_with_string(const uint32_t key, const char *const string) {
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+  dict_write_cstring(iter, key, string);
+  dict_write_end(iter);
+  app_message_outbox_send();
+}

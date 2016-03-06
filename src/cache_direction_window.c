@@ -9,7 +9,7 @@ static TextLayer *s_textlayer;
 static void get_cache_details(char* geocode) {
   text_layer_set_text(s_textlayer, geocode);
   //send_message_to_js();
-  send_message(AppKeyGetCacheDetails);
+  send_message_with_string(AppKeyGetCacheDetails, geocode);
 }
 
 static void handle_window_load(Window *window) {

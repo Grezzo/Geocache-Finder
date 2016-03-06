@@ -9,7 +9,7 @@ detect no config
 
 
 //Patterns for parsing the result of a (detailed) search:
-//PATTERN_LATLON = Pattern.compile("<span id=\"uxLatLon\"[^>]*>(.*?)</span>");
+var PATTERN_LATLON = /<span id="uxLatLon"[^>]*>(.*?)<\/span>/;
 //PATTERN_NAME = Pattern.compile("<span id=\"ctl00_ContentBody_CacheName\">(.*?)</span>");
 
 //Pattern for parsing the logged in user:
@@ -22,13 +22,19 @@ var PATTERN_SEARCH_NAME = /<span>\W*([^<]+)\W*<\/span><\/a>/;
 
 
 
-
-
 function getNearbyGeocaches() {
   console.log("Getting location...");
   var locationWatcher = navigator.geolocation.watchPosition( function(position) {
+    var accuracy = 100;
     //if (position.coords.accuracy <= 100) {
-    if (position.coords.accuracy <= 1000) {
+    
+    if ((Pebble.getActiveWatchInfo().model.indexOf("qemu_platform_") != -1)) {
+      console.log('Detected emulator in use, decreasing GPS accuracy');
+      accuracy = 1000;
+    }
+    
+    
+    if (position.coords.accuracy <= accuracy) {
       console.log("Location accuracy (" + position.coords.accuracy + "m) is good");
       navigator.geolocation.clearWatch(locationWatcher);
       getCachesNearCoords(position.coords);
@@ -45,7 +51,7 @@ function getCachesNearCoords(coords) {
   req.open("GET", searchURL, false);
   req.send();
   if (req.status === 200) {
-    //parse returned html
+    //parse the returned html
     var page = req.responseText;
     
     //Get only rows of search results
@@ -57,18 +63,8 @@ function getCachesNearCoords(coords) {
     var rows = page.split("</tr>");
     // Remove last item in array because it's empty
     rows.pop();
-    //var nearbyGeocaches = [];
     var geocacheList = [];
     rows.forEach(function(row, index) {
-      /*console.log(row.indexOf("Premium Member Only Cache") != -1);
-      console.log(localStorage.getItem("show_premium") === "true");
-      console.log(
-        (row.indexOf("Premium Member Only Cache") != -1) &&
-        (!localStorage.getItem("show_premium"))
-      );*/
-      
-        // && localStorage.getItem("show_premium") === false
-        //););
       //Filter out premium/found caches
       if (
         !(
@@ -110,15 +106,26 @@ function getCachesNearCoords(coords) {
   }
 }
 
-/*function getCacheDetails(cacheID) {
-  var URL = "https://www.geocaching.com/seek/cache_details.aspx?wp=" + cacheID;
+function getCacheDetails(geocode) {
+  var URL = "https://www.geocaching.com/seek/cache_details.aspx?wp=" + geocode;
   var req = new XMLHttpRequest();
   req.open("GET", URL, false);
-  if (req.status === 200) {
-    console.log(this.responseText);
-  }
   req.send();
-}*/
+  if (req.status === 200) {
+    //console.log(req.responseText);
+    var coords = req.responseText.match(PATTERN_LATLON)[1];
+    console.log(coords);
+    // Send coords to watch
+    Pebble.sendAppMessage({ 'AppKeyCoords': coords },
+                        function(e) {
+                          console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
+                        },
+                        function(e) {
+                          console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
+                                      ' Error is: ' + e.data.error.message);
+                        });
+  }
+}
 
 
 
@@ -253,6 +260,10 @@ Pebble.addEventListener('appmessage', function(e) {
     //symbol = e.payload.QuoteKeySymbol;
     //localStorage.setItem('symbol', symbol);
     //fetchStockQuote(symbol, false);
+  } else if (e.payload.AppKeyGetCacheDetails) {
+    var geocode = e.payload.AppKeyGetCacheDetails;
+    console.log("...and it says to get details on " + geocode);
+    getCacheDetails(geocode);
   }
 });
 
