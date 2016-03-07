@@ -8,6 +8,10 @@ static TextLayer *s_textlayer;
 
 void show_geocache_coords(char *coords) {
   text_layer_set_text(s_textlayer, coords);
+  //Turn on light in case it too so long to get results that it had gone dark
+  light_enable_interaction();
+  //Vibrate to indicate that results are ready in case it took ages
+  vibes_short_pulse();
 }
 
 static void handle_window_load(Window *window) {

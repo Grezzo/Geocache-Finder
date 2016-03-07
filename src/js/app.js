@@ -10,7 +10,7 @@ detect no config
 
 //Patterns for parsing the result of a (detailed) search:
 var PATTERN_LATLON = /<span id="uxLatLon"[^>]*>(.*?)<\/span>/;
-//PATTERN_NAME = Pattern.compile("<span id=\"ctl00_ContentBody_CacheName\">(.*?)</span>");
+var PATTERN_NAME = /<span id="ctl00_ContentBody_CacheName">\W*(.*?)\W*<\/span>/;
 
 //Pattern for parsing the logged in user:
 var PATTERN_LOGIN_NAME = /class="li-user-info"[^>]*>\W*?<span>(.*?)<\/span>/;
@@ -111,11 +111,13 @@ function getCacheDetails(geocode) {
   req.send();
   if (req.status === 200) {
     //console.log(req.responseText);
-    var coords = req.responseText.match(PATTERN_LATLON)[1];
-    coords = coords.replace(" W", "\nW");
+    var coords = getDecimalDegrees(req.responseText.match(PATTERN_LATLON)[1]);
+    //coords = coords.replace(" W", "\nW");
     console.log(coords);
+    var name = req.responseText.match(PATTERN_NAME)[1];
+    var message = name + "\n" + coords;
     // Send coords to watch
-    Pebble.sendAppMessage({ 'AppKeyCoords': coords },
+    Pebble.sendAppMessage({ 'AppKeyCoords': message },
                         function(e) {
                           console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
                         },
@@ -160,6 +162,16 @@ function htmlUnescape(string) {
         return dist;
 }*/
 
+function getDecimalDegrees(coords) {
+  var latParts = coords.match(/(N|S) (\d+)° (\d+\.*\d*)/);
+  var lonParts = coords.match(/(E|W) (\d+)° (\d+\.*\d*)/);
+  var lat = (latParts[1] === "N" ? 1 : -1) * (parseInt(latParts[2], 10) + (parseFloat(latParts[3]) / 60));
+  var lon = (lonParts[1] === "E" ? 1 : -1) * (parseInt(lonParts[2], 10) + (parseFloat(lonParts[3]) / 60));
+  coords = lat + "," + lon;
+  return coords;
+}
+
+console.log(getDecimalDegrees("N 51° 29.104 W 001° 05.410"));
 
 
 
