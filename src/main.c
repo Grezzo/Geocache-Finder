@@ -26,7 +26,7 @@ static int numberOfGeocaches;
 static char s_message[1000];
 
 //Buffer for coods recieved from JS
-static char s_coords_msg[40];
+static char s_coords_msg[400];
 
 //Main window
 static Window *s_main_window;
