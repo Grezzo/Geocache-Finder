@@ -4,7 +4,13 @@
         "AppKeyGeocacheList": 2,
         "AppKeyGetCacheDetails": 3,
         "AppKeyGetGeocaches": 1,
-        "AppKeyReady": 0
+        "AppKeyGetSettings": 5,
+        "AppKeyReady": 0,
+        "AppKeySetShowFound": 10,
+        "AppKeySetShowPremium": 9,
+        "AppKeyShowFound": 8,
+        "AppKeyShowPremium": 7,
+        "AppKeyUsername": 6
     },
     "capabilities": [
         "location",
@@ -17,8 +23,20 @@
     "resources": {
         "media": [
             {
-                "file": "images/list_icon.png",
-                "name": "IMAGE_LIST_ICON",
+                "file": "images/saved_icon.png",
+                "name": "IMAGE_SAVED_ICON",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            },
+            {
+                "file": "images/tick_white.png",
+                "name": "IMAGE_TICK_WHITE",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            },
+            {
+                "file": "images/tick_black.png",
+                "name": "IMAGE_TICK_BLACK",
                 "targetPlatforms": null,
                 "type": "bitmap"
             },

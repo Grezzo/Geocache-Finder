@@ -1,6 +1,6 @@
 /*
   TODO: Test on Android (cookies may not be passed on xmlHttpRequests, and config page may not load)
-  currently tries to lo in as null is not configured
+  currently tries to log if as null is not configured
         Store credentials on watch (not phone)
 detect no username/password
 detect no config
@@ -275,6 +275,25 @@ Pebble.addEventListener('appmessage', function(e) {
     var geocode = e.payload.AppKeyGetCacheDetails;
     console.log("...and it says to get details on " + geocode);
     getCacheDetails(geocode);
+  } else if (e.payload.AppKeyGetSettings) {
+    console.log("...and it says to get settings");
+    Pebble.sendAppMessage({
+      'AppKeyUsername': localStorage.getItem("username"),
+      'AppKeyShowPremium': (localStorage.getItem("show_premium") === "true"),
+      'AppKeyShowFound': (localStorage.getItem("show_found") === "true")},
+                        function(e) {
+                          console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
+                        },
+                        function(e) {
+                          console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
+                                      ' Error is: ' + e.data.error.message);
+                        });
+  } else if ('AppKeySetShowPremium' in e.payload) {
+    console.log("...and it says to set premium to" + e.payload.AppKeySetShowPremium);
+    localStorage.setItem("show_premium", e.payload.AppKeySetShowPremium ? "true" : "false");
+  } else if ('AppKeySetShowFound' in e.payload) {
+    console.log("...and it says to set found to" + e.payload.AppKeySetShowFound);
+    localStorage.setItem("show_found", e.payload.AppKeySetShowFound ? "true" : "false");
   }
 });
 

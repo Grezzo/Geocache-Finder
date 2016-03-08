@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include "cache_direction_window.h"
 #include "messaging.h"
+#include "settings_window.h"
 
 static void menu_window_init();
 
@@ -8,6 +9,8 @@ static void menu_window_init();
 /*
 TODO:
 detect connection to phone going away
+shrink message buffers and coords string array size (possibly)
+hide actionbar icons until phone connected
 */
 
 
@@ -33,7 +36,7 @@ static Window *s_main_window;
 static BitmapLayer *s_large_logo_layer;
 static GBitmap *s_large_logo;
 static ActionBarLayer *s_action_bar_layer;
-static GBitmap *s_list_icon;
+static GBitmap *s_saved_icon;
 static GBitmap *s_settings_icon;
 static GBitmap *s_search_icon;
 static TextLayer *s_status_layer;
@@ -63,9 +66,14 @@ static void get_geocaches_click_handler(ClickRecognizerRef recognizer, void *con
   text_layer_set_text(s_status_layer, "Getting geocaches...");
 }
 
+static void settings_click_handler() {
+  send_message(AppKeyGetSettings);
+}
+
 static void main_window_click_config_provider(void *context) {
   // Register the ClickHandlers
   window_single_click_subscribe(BUTTON_ID_SELECT, get_geocaches_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, settings_click_handler);
 }
 
 static void main_window_load(Window *window) {
@@ -93,8 +101,8 @@ static void main_window_load(Window *window) {
   s_action_bar_layer = action_bar_layer_create();
   s_settings_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SETTINGS_ICON);
   s_search_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SEARCH_ICON);
-  s_list_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LIST_ICON);
-  action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, s_list_icon);
+  s_saved_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_SAVED_ICON);
+  action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, s_saved_icon);
   action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, s_search_icon);
   action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, s_settings_icon);
   action_bar_layer_add_to_window(s_action_bar_layer, s_main_window);
@@ -107,7 +115,7 @@ static void main_window_unload(Window *window) {
   text_layer_destroy(s_status_layer);
   gbitmap_destroy(s_settings_icon);
   gbitmap_destroy(s_search_icon);
-  gbitmap_destroy(s_list_icon);
+  gbitmap_destroy(s_saved_icon);
   action_bar_layer_remove_from_window(s_action_bar_layer);
   action_bar_layer_destroy(s_action_bar_layer);
 
@@ -260,7 +268,10 @@ void geocacheListToArray(char * list) {
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *ready_tuple = dict_find(iter, AppKeyReady);
   Tuple *geocache_list_tuple = dict_find(iter, AppKeyGeocacheList);
-  Tuple *coords_tuple = dict_find(iter, AppKeyCoords);  
+  Tuple *coords_tuple = dict_find(iter, AppKeyCoords);
+  Tuple *username_tuple = dict_find(iter, AppKeyUsername);
+  Tuple *show_premium_tuple = dict_find(iter, AppKeyShowPremium);
+  Tuple *show_found_tuple = dict_find(iter, AppKeyShowFound);
   
   if(ready_tuple) {
     // PebbleKit JS is ready! Safe to send messages
@@ -269,6 +280,7 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     //Make buttons on pebble do something now that it's ready
     //window_set_click_config_provider(s_main_window, main_window_click_config_provider);
     action_bar_layer_set_click_config_provider(s_action_bar_layer, main_window_click_config_provider);
+    
   } else if(geocache_list_tuple) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Got a list of geocaches");
     strcpy(s_message, geocache_list_tuple->value->cstring);
@@ -276,11 +288,22 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     geocacheListToArray(s_message);
     //show menulist window
     menu_window_init();
+    
   } else if(coords_tuple) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Got coords");
     strcpy(s_coords_msg, coords_tuple->value->cstring);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", s_coords_msg);
     show_geocache_coords(s_coords_msg);
+    
+  } else if(username_tuple) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Got settings");
+    char* username = username_tuple->value->cstring;
+    bool show_premium = *show_premium_tuple->value->data;
+    bool show_found = *show_found_tuple->value->data;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Username: %s", username);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Premium: %sshown", show_premium ? "" : "not ");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Found: %sshown", show_found ? "" : "not ");
+    show_settings_window(username, show_premium, show_found);
   }
 }
 
