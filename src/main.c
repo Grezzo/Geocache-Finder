@@ -9,8 +9,11 @@ static void menu_window_init();
 /*
 TODO:
 detect connection to phone going away
-shrink message buffers and coords string array size (possibly)
+shrink message buffers and coords string array size (possibly?)
 hide actionbar icons until phone connected
+show time in status bar
+make unusable unless credentials saved
+display message if unable to log in
 */
 
 
@@ -158,10 +161,8 @@ static void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
   //Return number of non-empty records
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "asked for number of rows...");
   for (int i = 0; i < 20; i++) {
     if (strcmp(s_geocaches[i].geocode, "empty") == 0) {
-      APP_LOG(APP_LOG_LEVEL_DEBUG, "%i cells to display", i);
       return i;
     }
   }
@@ -241,17 +242,9 @@ void geocacheListToArray(char * list) {
   
   for (int i = 0; i < 20; i++) {
     char * geocache = getToken(&list, (char)30);
-    //char * geocache = "aaa";
     char *geocode = getToken(&geocache, (char)31);
-    //char *geocode = "bbb";
     char *name = getToken(&geocache, (char)31);
-    //char *name = "ccc";
-    char *distance = geocache;
-    //char *distance = "ddd";
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "geocode %i: %s", i, geocode);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "name %i: %s", i, name);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "distance %i: %s\n", i, distance);
-    
+    char *distance = geocache;    
     s_geocaches[i] = (Geocache){
       .geocode = geocode,
       .name = name,
@@ -266,6 +259,8 @@ void geocacheListToArray(char * list) {
 
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Watch recieved a message");
+
   Tuple *ready_tuple = dict_find(iter, AppKeyReady);
   Tuple *geocache_list_tuple = dict_find(iter, AppKeyGeocacheList);
   Tuple *coords_tuple = dict_find(iter, AppKeyCoords);
@@ -275,34 +270,29 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   
   if(ready_tuple) {
     // PebbleKit JS is ready! Safe to send messages
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "PebbleKit JS is ready!");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "...saying JS on phone is ready");
     text_layer_set_text(s_status_layer, "");
     //Make buttons on pebble do something now that it's ready
     //window_set_click_config_provider(s_main_window, main_window_click_config_provider);
     action_bar_layer_set_click_config_provider(s_action_bar_layer, main_window_click_config_provider);
     
   } else if(geocache_list_tuple) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Got a list of geocaches");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "...containing a list of geocaches");
     strcpy(s_message, geocache_list_tuple->value->cstring);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", s_message);
     geocacheListToArray(s_message);
     //show menulist window
     menu_window_init();
     
   } else if(coords_tuple) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Got coords");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "...containing coords");
     strcpy(s_coords_msg, coords_tuple->value->cstring);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", s_coords_msg);
     show_geocache_coords(s_coords_msg);
     
   } else if(username_tuple) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Got settings");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "...containing settings");
     char* username = username_tuple->value->cstring;
     bool show_premium = *show_premium_tuple->value->data;
     bool show_found = *show_found_tuple->value->data;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Username: %s", username);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Premium: %sshown", show_premium ? "" : "not ");
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "Found: %sshown", show_found ? "" : "not ");
     show_settings_window(username, show_premium, show_found);
   }
 }
@@ -318,14 +308,8 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
 int main(void) {
   // Register callback for app messaging
   app_message_register_inbox_received(inbox_received_handler);
-  //app_message_open(app_message_inbox_size_maximum(), APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
-  //app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
-  app_message_open(1000, 1000);
-  char buffer [50];
-  snprintf(buffer, 50, "buffer is %lu", (unsigned long)app_message_inbox_size_maximum());
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
-  snprintf(buffer, 50, "buffer is %d", APP_MESSAGE_INBOX_SIZE_MINIMUM);
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "%s", buffer);
+  app_message_open(1000, 100);
+  
   main_window_init();
   app_event_loop();
   main_window_deinit();

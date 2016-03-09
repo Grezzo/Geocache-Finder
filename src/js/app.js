@@ -5,6 +5,7 @@
 detect no username/password
 detect no config
         keep searching until 20 caches found AFTER filter applied
+        log in before getting cache details
 */
 
 
@@ -88,18 +89,16 @@ function getCachesNearCoords(coords) {
     
     //Join with ASCII record separator
     var geocacheListAsString = geocacheList.join(String.fromCharCode(30));
-    console.log("Got a list of Geocaches:");
-    console.log(geocacheListAsString);
+    console.log("Got a list of Geocachess");
 
     //Tell pebble that I've got a bunch of nearby geocaches
-    console.log("Telling Pebble");
     Pebble.sendAppMessage({ 'AppKeyGeocacheList': geocacheListAsString },
                           function(e) {
-                            console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
+                            console.log("Sent a list of geocaches to watch");
                           },
                           function(e) {
-                            console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
-                                        ' Error is: ' + e.data.error.message);
+                            console.log("Failed to send a list of geocaches to watch." +
+                                        " Error is: " + e.data.error.message);
                           });
   }
 }
@@ -110,19 +109,16 @@ function getCacheDetails(geocode) {
   req.open("GET", URL, false);
   req.send();
   if (req.status === 200) {
-    //console.log(req.responseText);
     var coords = getDecimalDegrees(req.responseText.match(PATTERN_LATLON)[1]);
-    //coords = coords.replace(" W", "\nW");
-    console.log(coords);
     var name = req.responseText.match(PATTERN_NAME)[1];
     var message = name + "\n" + coords;
     // Send coords to watch
     Pebble.sendAppMessage({ 'AppKeyCoords': message },
                         function(e) {
-                          console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
+                          console.log('Sent coordinates to watch');
                         },
                         function(e) {
-                          console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
+                          console.log('Failed to send coordinates to watch.' +
                                       ' Error is: ' + e.data.error.message);
                         });
   }
@@ -141,7 +137,6 @@ function caseInsensitiveCompare(str1, str2) {
 function htmlUnescape(string) {
   string = string.replace("&amp;", "&");
   string = string.replace("&#39;", "'");
-  console.log(string);
   //could do this better. especially with numbers! Maybe get a list of entities from a node.js library
   //TODO: is &#39; not escaped if it's at the beginning like 'Hampshire Hoggin'?
   return string;
@@ -170,9 +165,6 @@ function getDecimalDegrees(coords) {
   coords = lat + "," + lon;
   return coords;
 }
-
-console.log(getDecimalDegrees("N 51° 29.104 W 001° 05.410"));
-
 
 
 
@@ -261,16 +253,9 @@ function logInToGeocaching() {
 Pebble.addEventListener('appmessage', function(e) {
   console.log('JS received message from pebble');
   if (e.payload.AppKeyGetGeocaches) {
-    console.log("...and it says to get geocaches!");
+    console.log("...and it says to get geocaches");
     logInToGeocaching();
     getNearbyGeocaches();
-    //fetchStockQuote(symbol, true);
-  //} else if (e.payload.QuoteKeyFetch) {
-    //fetchStockQuote(symbol, false);
-  //} else if (e.payload.QuoteKeySymbol) {
-    //symbol = e.payload.QuoteKeySymbol;
-    //localStorage.setItem('symbol', symbol);
-    //fetchStockQuote(symbol, false);
   } else if (e.payload.AppKeyGetCacheDetails) {
     var geocode = e.payload.AppKeyGetCacheDetails;
     console.log("...and it says to get details on " + geocode);
@@ -282,17 +267,17 @@ Pebble.addEventListener('appmessage', function(e) {
       'AppKeyShowPremium': (localStorage.getItem("show_premium") === "true"),
       'AppKeyShowFound': (localStorage.getItem("show_found") === "true")},
                         function(e) {
-                          console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
+                          console.log('Sent settings to watch');
                         },
                         function(e) {
-                          console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
+                          console.log('Failed to send settings to watch.' +
                                       ' Error is: ' + e.data.error.message);
                         });
   } else if ('AppKeySetShowPremium' in e.payload) {
-    console.log("...and it says to set premium to" + e.payload.AppKeySetShowPremium);
+    console.log("...and it says to " + (e.payload.AppKeySetShowPremium ? "show" : "hide") + " premium caches");
     localStorage.setItem("show_premium", e.payload.AppKeySetShowPremium ? "true" : "false");
   } else if ('AppKeySetShowFound' in e.payload) {
-    console.log("...and it says to set found to" + e.payload.AppKeySetShowFound);
+    console.log("...and it says to " + (e.payload.AppKeySetShowFound ? "show" : "hide") + " found caches");
     localStorage.setItem("show_found", e.payload.AppKeySetShowFound ? "true" : "false");
   }
 });
@@ -308,16 +293,16 @@ Pebble.addEventListener('appmessage', function(e) {
 //------------------------------------------
 
 Pebble.addEventListener("ready", function(e) {
-  console.log("JavaScript app ready and running!");
+  console.log("JavaScript ready");
 
   // Notify the watchapp that it is now safe to send messages
   Pebble.sendAppMessage({ 'AppKeyReady': true },
                         function(e) {
-                          console.log('Successfully delivered message with transactionId=' + e.data.transactionId);
+                          console.log("Told watch that JS is ready");
                         },
                         function(e) {
-                          console.log('Unable to deliver message with transactionId=' + e.data.transactionId +
-                                      ' Error is: ' + e.data.error.message);
+                          console.log("Failed to tell watch that JS is ready." +
+                                      " Error is:"  + e.data.error.message);
                         });
 });
 
@@ -337,7 +322,7 @@ Pebble.addEventListener('showConfiguration', function(e) {
   //Suppress warnings about line continuations used in embedded config html
   /* jshint multistr: true */
   
-  // Show config page (comment at end removes querystring if used in emulator)
+  // Show config page
   var configPage = "\
 <html><head>\n\
 <style>\n\
@@ -421,7 +406,7 @@ If you don't have a password (i.e. you normally log in using Facebook), you will
 </tr></table>\n\
 <input type=\"button\" value=\"Save\" id=\"saveButton\">\n\
 </body></html><!--\
-";
+"; // Comment at end removes cloudpebble's querystring from appearing in html if used in emulator.
   
   // Turn warnings back on
   /* jshint multistr: false */
@@ -451,19 +436,3 @@ Pebble.addEventListener('webviewclosed', function(e) {
     logInToGeocaching();
   }
 });
-
-    
-    /*
-    //Prepare AppMessage payload
-    var dict = {
-      'USERNAME': config_data.username,
-      'PASSWORD': config_data.password,
-    };
-
-    // Send settings to Pebble watchapp
-    Pebble.sendAppMessage(dict, function(){
-      console.log('Sent config data to Pebble');  
-    }, function() {
-      console.log('Failed to send config data');
-    });
-    */
