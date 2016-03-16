@@ -8,10 +8,11 @@ static void menu_window_init();
 
 /*
 TODO:
+say when getting location before saying when getting geocaches
 detect connection to phone going away
 shrink message buffers and coords string array size (possibly?)
 hide actionbar icons until phone connected
-show time in status bar
+show status bar on every window (so time and battery level can be seen)
 make unusable unless credentials saved
 display message if unable to log in
 */
@@ -36,6 +37,7 @@ static char s_coords_msg[400];
 
 //Main window
 static Window *s_main_window;
+static StatusBarLayer *s_status_bar_layer;
 static BitmapLayer *s_large_logo_layer;
 static GBitmap *s_large_logo;
 static ActionBarLayer *s_action_bar_layer;
@@ -85,15 +87,22 @@ static void main_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
   
-  s_large_logo_layer = bitmap_layer_create(GRect(0, 0, bounds.size.w - ACTION_BAR_WIDTH, 104));
+  s_status_bar_layer = status_bar_layer_create();
+  
+  s_large_logo_layer = bitmap_layer_create(GRect(0, STATUS_BAR_LAYER_HEIGHT, bounds.size.w - ACTION_BAR_WIDTH, 104));
   s_large_logo = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LARGE_LOGO);
   bitmap_layer_set_bitmap(s_large_logo_layer, s_large_logo);
   
   // Create the TextLayer with specific bounds
   s_status_layer = text_layer_create(
-    GRect(0, 104, bounds.size.w - ACTION_BAR_WIDTH, bounds.size.h-104)
+    GRect(0, 104 + STATUS_BAR_LAYER_HEIGHT, bounds.size.w - ACTION_BAR_WIDTH, bounds.size.h-104)
   );
   text_layer_set_text_alignment(s_status_layer, GTextAlignmentCenter);
+  #ifdef PBL_COLOR
+    window_set_background_color(s_main_window, GColorDarkGreen);
+    text_layer_set_text_color(s_status_layer, GColorWhite);
+    text_layer_set_background_color(s_status_layer, GColorClear);
+  #endif
 
   text_layer_set_text(s_status_layer, "Waiting for phone");
     
@@ -109,10 +118,12 @@ static void main_window_load(Window *window) {
   action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_SELECT, s_search_icon);
   action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, s_settings_icon);
   action_bar_layer_add_to_window(s_action_bar_layer, s_main_window);
+  layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar_layer));
 }
 
 static void main_window_unload(Window *window) {
   // Destroy TextLayer
+  status_bar_layer_destroy(s_status_bar_layer);
   gbitmap_destroy(s_large_logo);
   bitmap_layer_destroy(s_large_logo_layer);
   text_layer_destroy(s_status_layer);
@@ -263,11 +274,13 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
 
   Tuple *ready_tuple = dict_find(iter, AppKeyReady);
   Tuple *geocache_list_tuple = dict_find(iter, AppKeyGeocacheList);
-  Tuple *coords_tuple = dict_find(iter, AppKeyCoords);
   Tuple *username_tuple = dict_find(iter, AppKeyUsername);
   Tuple *show_premium_tuple = dict_find(iter, AppKeyShowPremium);
   Tuple *show_found_tuple = dict_find(iter, AppKeyShowFound);
-  
+  Tuple *distance_tuple = dict_find(iter, AppKeyDistance);
+  Tuple *bearing_tuple = dict_find(iter, AppKeyBearing);
+  Tuple *accuracy_tuple = dict_find(iter, AppKeyAccuracy);
+
   if(ready_tuple) {
     // PebbleKit JS is ready! Safe to send messages
     APP_LOG(APP_LOG_LEVEL_DEBUG, "...saying JS on phone is ready");
@@ -283,17 +296,22 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     //show menulist window
     menu_window_init();
     
-  } else if(coords_tuple) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "...containing coords");
-    strcpy(s_coords_msg, coords_tuple->value->cstring);
-    show_geocache_coords(s_coords_msg);
-    
   } else if(username_tuple) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "...containing settings");
     char* username = username_tuple->value->cstring;
     bool show_premium = *show_premium_tuple->value->data;
     bool show_found = *show_found_tuple->value->data;
     show_settings_window(username, show_premium, show_found);
+    
+  } else if(distance_tuple) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "...containing distance, bearing & accuracy");
+    update_location_details(
+      distance_tuple->value->cstring,
+      bearing_tuple->value->int32,
+      accuracy_tuple->value->cstring
+    );
+  } else {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "...but it's not recognised and will be ignored");
   }
 }
 

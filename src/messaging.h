@@ -6,13 +6,16 @@ typedef enum {
   AppKeyGetGeocaches,
   AppKeyGeocacheList,
   AppKeyGetCacheDetails,
-  AppKeyCoords,
   AppKeyGetSettings,
   AppKeyUsername,
   AppKeyShowPremium,
   AppKeyShowFound,
   AppKeySetShowPremium,
   AppKeySetShowFound,
+  AppKeyDistance,
+  AppKeyBearing,
+  AppKeyAccuracy,
+  AppKeyStopLocationUpdates,
 } AppKey;
 
 void send_message(const uint32_t key);

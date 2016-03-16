@@ -1,16 +1,19 @@
 {
     "appKeys": {
-        "AppKeyCoords": 4,
+        "AppKeyAccuracy": 12,
+        "AppKeyBearing": 11,
+        "AppKeyDistance": 10,
         "AppKeyGeocacheList": 2,
         "AppKeyGetCacheDetails": 3,
         "AppKeyGetGeocaches": 1,
-        "AppKeyGetSettings": 5,
+        "AppKeyGetSettings": 4,
         "AppKeyReady": 0,
-        "AppKeySetShowFound": 10,
-        "AppKeySetShowPremium": 9,
-        "AppKeyShowFound": 8,
-        "AppKeyShowPremium": 7,
-        "AppKeyUsername": 6
+        "AppKeySetShowFound": 9,
+        "AppKeySetShowPremium": 8,
+        "AppKeyShowFound": 7,
+        "AppKeyShowPremium": 6,
+        "AppKeyStopLocationUpdates": 13,
+        "AppKeyUsername": 5
     },
     "capabilities": [
         "location",
@@ -84,7 +87,7 @@
         "basalt",
         "chalk"
     ],
-    "uuid": "588cc29b-d4fb-4a93-95d5-33f0634d5757",
+    "uuid": "5db54026-ba56-462a-acaf-c5ca16483523",
     "versionLabel": "1.0",
     "watchapp": {
         "watchface": false
