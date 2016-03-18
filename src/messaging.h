@@ -14,7 +14,6 @@ typedef enum {
   AppKeySetShowFound,
   AppKeyDistance,
   AppKeyBearing,
-  AppKeyAccuracy,
   AppKeyStopLocationUpdates,
 } AppKey;
 

@@ -27,6 +27,10 @@ function stopLocationUpdates() {
   navigator.geolocation.clearWatch(locationWatcher);
 }
 
+function parseSearchResultsPage() {
+  
+}
+
 function getCachesNearCoords(coords) {
   var searchURL = "https://www.geocaching.com/seek/nearest.aspx?lat=" + coords.latitude + "&lng=" + coords.longitude;
   console.log("Getting list of geocaches from " + searchURL);  
@@ -105,9 +109,8 @@ function getCacheDetails(geocode) {
     );
     //console.log(JSON.stringify(position));
     Pebble.sendAppMessage({
-      'AppKeyDistance': distanceAndBearing.distance,
-      'AppKeyBearing': distanceAndBearing.bearing,
-      'AppKeyAccuracy': Math.round(currPosition.coords.accuracy) + "m"
+      'AppKeyDistance': distanceAndBearing.distance + " ± " + /*Math.round(*/currPosition.coords.accuracy/*)*/ + "m",
+      'AppKeyBearing': distanceAndBearing.bearing
     },
                           function(e) {
                             console.log("Sent Location to watch");

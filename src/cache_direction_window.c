@@ -10,45 +10,26 @@
 static TextLayer *s_textlayer;
 static StatusBarLayer *s_status_bar_layer;
 static ArrowLayer * s_arrow_layer;
-static char buffer[100];
 
 static bool hasHeading;
 static bool hasLocationDetails;
 
 static char* distance;
 static int bearing;
-static char* accuracy;
 static int heading;
 
 static void update_details_window() {
   if (hasHeading && hasLocationDetails) {
-    //heading = /*360*/TRIG_MAX_ANGLE - heading;
     int direction = (bearing + heading) % TRIG_MAX_ANGLE;
-
-//     snprintf(buffer, 100, "Distance: %s\nDirection: %i\nBearing(g): %i\nHeading(c): %i\nAccuracy: %s",
-//              distance,
-//              direction,
-//              bearing,
-//              heading,
-//              accuracy
-//             );
-    snprintf(buffer, 100, "Distance: %s\n\nAccuracy: %s",
-             distance,
-             accuracy
-            );
-    text_layer_set_text(s_textlayer, buffer);
+    text_layer_set_text(s_textlayer, distance);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "%i", text_layer_get_content_size(s_textlayer).h);
     arrow_layer_set_angle(s_arrow_layer, direction);
-    //Turn on light in case it too so long to get results that it had gone dark
-    //light_enable_interaction();
-    //Vibrate to indicate that results are ready in case it took ages
-    //vibes_short_pulse();
   }
 }
 
-void update_location_details(char* new_distance, int new_bearing, char* new_accuracy) {
+void update_location_details(char* new_distance, int new_bearing) {
   distance = new_distance;
   bearing = DEG_TO_TRIGANGLE(new_bearing);
-  accuracy = new_accuracy;
   hasLocationDetails = true;
   if (hasHeading) {
     update_details_window();
@@ -91,7 +72,7 @@ static void handle_window_load(Window *window) {
   layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar_layer));
   
   s_arrow_layer = arrow_layer_create(
-    GRect(0, STATUS_BAR_LAYER_HEIGHT, bounds.size.w, 100),
+    GRect(0, STATUS_BAR_LAYER_HEIGHT, bounds.size.w, bounds.size.h - 31 - STATUS_BAR_LAYER_HEIGHT),
     0,
     GColorBlack,
     true,
@@ -104,16 +85,15 @@ static void handle_window_load(Window *window) {
   hasLocationDetails = false;
   s_textlayer = text_layer_create(GRect(
     0,
-    STATUS_BAR_LAYER_HEIGHT + 100,
+    bounds.size.h - 31,
     bounds.size.w,
-    bounds.size.h - STATUS_BAR_LAYER_HEIGHT - 100
+    31
   ));
-  //text_layer_set_font(s_textlayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+  text_layer_set_font(s_textlayer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  text_layer_set_text_alignment(s_textlayer, GTextAlignmentCenter);
   text_layer_set_text(s_textlayer, "Getting cache details...");
   layer_add_child(window_layer, (Layer *)s_textlayer);
-  
-  
-  
+
   compass_service_subscribe(compass_heading_handler);  
 }
 

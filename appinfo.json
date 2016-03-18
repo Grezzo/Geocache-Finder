@@ -1,6 +1,5 @@
 {
     "appKeys": {
-        "AppKeyAccuracy": 12,
         "AppKeyBearing": 11,
         "AppKeyDistance": 10,
         "AppKeyGeocacheList": 2,
@@ -12,7 +11,7 @@
         "AppKeySetShowPremium": 8,
         "AppKeyShowFound": 7,
         "AppKeyShowPremium": 6,
-        "AppKeyStopLocationUpdates": 13,
+        "AppKeyStopLocationUpdates": 12,
         "AppKeyUsername": 5
     },
     "capabilities": [

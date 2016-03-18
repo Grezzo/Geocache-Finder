@@ -279,7 +279,6 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *show_found_tuple = dict_find(iter, AppKeyShowFound);
   Tuple *distance_tuple = dict_find(iter, AppKeyDistance);
   Tuple *bearing_tuple = dict_find(iter, AppKeyBearing);
-  Tuple *accuracy_tuple = dict_find(iter, AppKeyAccuracy);
 
   if(ready_tuple) {
     // PebbleKit JS is ready! Safe to send messages
@@ -307,8 +306,7 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "...containing distance, bearing & accuracy");
     update_location_details(
       distance_tuple->value->cstring,
-      bearing_tuple->value->int32,
-      accuracy_tuple->value->cstring
+      bearing_tuple->value->int32
     );
   } else {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "...but it's not recognised and will be ignored");
