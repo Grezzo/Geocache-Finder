@@ -20,6 +20,7 @@ var PATTERN_LOGIN_NAME = /class="li-user-info"[^>]*>\W*?<span>(.*?)<\/span>/;
 var PATTERN_SEARCH_GEOCODE = /\|\W*(GC[0-9A-Z]+)[^\|]*\|/;
 var PATTERN_SEARCH_DISTANCE = /<span class="small NoWrap"><img[^>]+>[NSEW]+<br \/>\W*([^<]+)\W*<\/span>/;
 var PATTERN_SEARCH_NAME = /<span>\W*([^<]+)\W*<\/span><\/a>/;
+var PATTERN_VIEWSTATES = /id="__VIEWSTATE\d*"\W*value="([^"]+)"/g;
 
 var locationWatcher; //location watcher object
 
@@ -27,69 +28,94 @@ function stopLocationUpdates() {
   navigator.geolocation.clearWatch(locationWatcher);
 }
 
-function parseSearchResultsPage() {
+function parseSearchResultsPage(page) {
+
+  //Get viewstates
+  var viewstates = [];
+  var viewstate;
+  while ((viewstate = PATTERN_VIEWSTATES.exec(page)) !== null) {
+    viewstates.push(viewstate[1]);
+  }
+
   
+  //Get geocaches
+  var geocaches = [];  
+  
+  //Get only rows of search results (discard start and end)
+  var startPos = page.substring(0, page.indexOf("Data BorderTop")).lastIndexOf("<tr");
+  var endPos = page.indexOf("</table>", startPos);
+  page = page.substring(startPos, endPos);
+
+  //Split rows
+  var rows = page.split("</tr>");
+  // Remove last item in array because it's empty
+  rows.pop();
+  
+  //Parse each row
+  rows.forEach(function(row, index) {
+    //Filter out premium/found caches
+    if (
+      !(
+        row.indexOf("Premium Member Only Cache") != -1 &&
+        localStorage.getItem("show_premium") === "false"
+      ) && !(
+        row.indexOf("Found It") != -1 &&
+        localStorage.getItem("show_found") === "false"
+      )
+    ) {
+      var geocode = row.match(PATTERN_SEARCH_GEOCODE)[1];
+      var name = helper.htmlUnescape(row.match(PATTERN_SEARCH_NAME)[1]);
+      var distance = row.match(PATTERN_SEARCH_DISTANCE)[1];
+      geocaches.push([geocode, name, distance].join(String.fromCharCode(31)));
+    }
+  });
+  
+  return {
+    geocaches: geocaches,
+    viewstates: viewstates
+  };
 }
 
 function getCachesNearCoords(coords) {
+  var geocacheList = [];
   var searchURL = "https://www.geocaching.com/seek/nearest.aspx?lat=" + coords.latitude + "&lng=" + coords.longitude;
   console.log("Getting list of geocaches from " + searchURL);  
   var req = new XMLHttpRequest();
-  req.open("GET", searchURL, false);
-  req.send();
-  if (req.status === 200) {
-    //parse the returned html
-    var page = req.responseText;
-    
-    //Get only rows of search results
-    var startPos = page.substring(0, page.indexOf("Data BorderTop")).lastIndexOf("<tr");
-    var endPos = page.indexOf("</table>", startPos);
-    page = page.substring(startPos, endPos);
-  
-    //Split rows and parse them
-    var rows = page.split("</tr>");
-    // Remove last item in array because it's empty
-    rows.pop();
-    var geocacheList = [];
-    rows.forEach(function(row, index) {
-      //Filter out premium/found caches
-      if (
-        !(
-          row.indexOf("Premium Member Only Cache") != -1 &&
-          localStorage.getItem("show_premium") === "false"
-        ) && !(
-          row.indexOf("Found It") != -1 &&
-          localStorage.getItem("show_found") === "false"
-        )
-      ) {
-        var geocode = row.match(PATTERN_SEARCH_GEOCODE)[1];
-        var name = helper.htmlUnescape(row.match(PATTERN_SEARCH_NAME)[1]);
-        var distance = row.match(PATTERN_SEARCH_DISTANCE)[1];
-        var geocache = [geocode, name, distance];
-        //Join with ASCII unit separator
-        geocacheList.push(geocache.join(String.fromCharCode(31)));
-      }
-    });
-    //Pad list to 20 records in case some were filtered
-    while (geocacheList.length < 20) {
-      geocacheList.push(["empty","empty","empty"].join(String.fromCharCode(31)));
-    }
-    
-    //Join with ASCII record separator
-    var geocacheListAsString = geocacheList.join(String.fromCharCode(30));
-    console.log("Got a list of Geocachess");
-    
+  req.open("POST", searchURL, false);
+  var formdata = "";
+  while (geocacheList.length < 20) {
+    req.send(formdata);
+    if (req.status === 200) {
+      var parseResults = parseSearchResultsPage(req.responseText);
+      parseResults.geocaches.forEach(function(geocache) {
+        geocacheList.push(geocache);
+      });
+      formdata = "__EVENTTARGET=" + encodeURIComponent("ctl00$ContentBody$pgrTop$ctl08") + "&__VIEWSTATEFIELDCOUNT=" + parseResults.viewstates.length;
 
-    //Tell pebble that I've got a bunch of nearby geocaches
-    Pebble.sendAppMessage({ 'AppKeyGeocacheList': geocacheListAsString },
-                          function(e) {
-                            console.log("Sent a list of geocaches to watch");
-                          },
-                          function(e) {
-                            console.log("Failed to send a list of geocaches to watch." +
-                                        " Error is: " + e.data.error.message);
-                          });
+      parseResults.viewstates.forEach(function(viewstate, index) {
+        formdata += "&__VIEWSTATE";
+        if (index > 0) {
+          formdata += index;
+        }
+        formdata += "=" + encodeURIComponent(viewstate);
+      });
+    }
   }
+  geocacheList = geocacheList.slice(0, 20);
+    
+  //Join with ASCII record separator
+  var geocacheListAsString = geocacheList.join(String.fromCharCode(30));
+  console.log("Got a list of Geocachess");
+
+  //Tell pebble that I've got a bunch of nearby geocaches
+  Pebble.sendAppMessage({ 'AppKeyGeocacheList': geocacheListAsString },
+                        function(e) {
+                          console.log("Sent a list of geocaches to watch");
+                        },
+                        function(e) {
+                          console.log("Failed to send a list of geocaches to watch." +
+                                      " Error is: " + e.data.error.message);
+                        });
 }
 
 function getCacheDetails(geocode) {
