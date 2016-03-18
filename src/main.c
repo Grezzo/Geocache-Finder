@@ -186,7 +186,26 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
   char *title = s_geocaches[row].name;
   char subtitle[20];
   snprintf(subtitle, 20, "%s - %s", s_geocaches[row].geocode, s_geocaches[row].distance);
-  menu_cell_basic_draw(ctx, cell_layer, title, subtitle, NULL);
+  if (menu_cell_layer_is_highlighted(cell_layer)) {
+    graphics_context_set_text_color(ctx, GColorWhite);
+  } else {
+    graphics_context_set_text_color(ctx, GColorBlack);
+  }
+  GRect bounds = layer_get_bounds(cell_layer);
+  GRect title_box = GRect(3, 0, bounds.size.w - 6, bounds.size.h);
+  graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), title_box, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+  GRect subtitle_box = GRect(3, bounds.size.h - 19 , bounds.size.w - 6, 19);
+  graphics_draw_text(ctx, subtitle, fonts_get_system_font(FONT_KEY_GOTHIC_14), subtitle_box, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+}
+
+static int16_t menu_get_cell_height(MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
+  int row = cell_index->row;
+  char *title = s_geocaches[row].name;
+
+  GRect bounds = layer_get_bounds(menu_layer_get_layer(menu_layer));
+  GRect title_box = GRect(3, 0, bounds.size.w - 6, 100);
+  GSize text_size = graphics_text_layout_get_content_size(title, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), title_box, GTextOverflowModeWordWrap, GTextAlignmentLeft);
+  return text_size.h + 19;
 }
 
 static void menu_window_load(Window *window) {
@@ -198,6 +217,7 @@ static void menu_window_load(Window *window) {
     .get_num_rows = menu_get_num_rows_callback,
     .draw_row = menu_draw_row_callback,
     .select_click = menu_select_callback,
+    .get_cell_height = menu_get_cell_height,
   });
 
   // Bind the menu layer's click config provider to the window for interactivity
