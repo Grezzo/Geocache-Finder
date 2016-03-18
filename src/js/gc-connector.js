@@ -66,15 +66,34 @@ function parseSearchResultsPage(page) {
       var geocode = row.match(PATTERN_SEARCH_GEOCODE)[1];
       var name = helper.htmlUnescape(row.match(PATTERN_SEARCH_NAME)[1]);
       var distance = row.match(PATTERN_SEARCH_DISTANCE)[1];
+      //Join with ASCII unit separator
       geocaches.push([geocode, name, distance].join(String.fromCharCode(31)));
     }
   });
-  
   return {
     geocaches: geocaches,
     viewstates: viewstates
   };
 }
+
+
+function constructFormDataForNextPage(viewstates) {
+  var formData = "__EVENTTARGET=" + encodeURIComponent("ctl00$ContentBody$pgrTop$ctl08") +
+    "&__VIEWSTATEFIELDCOUNT=" + viewstates.length;
+
+  viewstates.forEach(function(viewstate, index) {
+    formData += "&__VIEWSTATE";
+    if (index > 0) {
+      formData += index;
+    }
+    formData += "=" + encodeURIComponent(viewstate);
+  });
+  
+  return formData;
+}
+
+
+
 
 function getCachesNearCoords(coords) {
   var geocacheList = [];
@@ -82,23 +101,25 @@ function getCachesNearCoords(coords) {
   console.log("Getting list of geocaches from " + searchURL);  
   var req = new XMLHttpRequest();
   req.open("POST", searchURL, false);
-  var formdata = "";
+  //formdata must be submitted to get page 2 results if necesarry
+  var formData = "";
   while (geocacheList.length < 20) {
-    req.send(formdata);
+    req.send(formData);
     if (req.status === 200) {
-      var parseResults = parseSearchResultsPage(req.responseText);
-      parseResults.geocaches.forEach(function(geocache) {
-        geocacheList.push(geocache);
-      });
-      formdata = "__EVENTTARGET=" + encodeURIComponent("ctl00$ContentBody$pgrTop$ctl08") + "&__VIEWSTATEFIELDCOUNT=" + parseResults.viewstates.length;
+      var reply = parseSearchResultsPage(req.responseText);
+      //Add new geocaches to list
+      geocacheList = helper.combineArrays(geocacheList, reply.geocaches);
+      formData = constructFormDataForNextPage(reply.viewstates);
+//       formdata = "__EVENTTARGET=" + encodeURIComponent("ctl00$ContentBody$pgrTop$ctl08") +
+//         "&__VIEWSTATEFIELDCOUNT=" + reply.viewstates.length;
 
-      parseResults.viewstates.forEach(function(viewstate, index) {
-        formdata += "&__VIEWSTATE";
-        if (index > 0) {
-          formdata += index;
-        }
-        formdata += "=" + encodeURIComponent(viewstate);
-      });
+//       reply.viewstates.forEach(function(viewstate, index) {
+//         formdata += "&__VIEWSTATE";
+//         if (index > 0) {
+//           formdata += index;
+//         }
+//         formdata += "=" + encodeURIComponent(viewstate);
+//       });
     }
   }
   geocacheList = geocacheList.slice(0, 20);

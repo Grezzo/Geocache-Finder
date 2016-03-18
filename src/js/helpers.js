@@ -2,6 +2,7 @@
 module.exports.htmlUnescape = htmlUnescape;
 module.exports.getDecimalDegrees = getDecimalDegrees;
 module.exports.caseInsensitiveCompare = caseInsensitiveCompare;
+module.exports.combineArrays = combineArrays;
 
 function htmlUnescape(string) {
   string = string.replace("&amp;", "&");
@@ -22,4 +23,11 @@ function getDecimalDegrees(coords) {
 
 function caseInsensitiveCompare(str1, str2) {
   return (str1.toUpperCase() === str2.toUpperCase());
+}
+
+function combineArrays(array1, array2) {
+  array2.forEach(function(geocache) {
+    array1.push(geocache);
+  });
+  return array1;
 }
