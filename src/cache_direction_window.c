@@ -3,7 +3,7 @@
 #include "messaging.h"
 #include "arrow_layer.h"
 
-//TODO use true heading?
+//TODO:
 //    vibrate if close to cahce
 //get bearing sent from JS in trigangle
 

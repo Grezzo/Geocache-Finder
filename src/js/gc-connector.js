@@ -53,7 +53,7 @@ function parseSearchResultsPage(page) {
   
   //Parse each row
   rows.forEach(function(row, index) {
-    //Filter out premium/found caches
+    //Filter out premium/found/disabled caches
     if (
       !(
         row.indexOf("Premium Member Only Cache") != -1 &&
@@ -61,6 +61,8 @@ function parseSearchResultsPage(page) {
       ) && !(
         row.indexOf("Found It") != -1 &&
         localStorage.getItem("show_found") === "false"
+      ) && (
+        row.indexOf("class=\"lnk  Strike\"") === -1
       )
     ) {
       var geocode = row.match(PATTERN_SEARCH_GEOCODE)[1];
@@ -110,16 +112,6 @@ function getCachesNearCoords(coords) {
       //Add new geocaches to list
       geocacheList = helper.combineArrays(geocacheList, reply.geocaches);
       formData = constructFormDataForNextPage(reply.viewstates);
-//       formdata = "__EVENTTARGET=" + encodeURIComponent("ctl00$ContentBody$pgrTop$ctl08") +
-//         "&__VIEWSTATEFIELDCOUNT=" + reply.viewstates.length;
-
-//       reply.viewstates.forEach(function(viewstate, index) {
-//         formdata += "&__VIEWSTATE";
-//         if (index > 0) {
-//           formdata += index;
-//         }
-//         formdata += "=" + encodeURIComponent(viewstate);
-//       });
     }
   }
   geocacheList = geocacheList.slice(0, 20);
@@ -154,7 +146,6 @@ function getCacheDetails(geocode) {
       destCoords.longitude,
       true
     );
-    //console.log(JSON.stringify(position));
     Pebble.sendAppMessage({
       'AppKeyDistance': distanceAndBearing.distance + " ± " + /*Math.round(*/currPosition.coords.accuracy/*)*/ + "m",
       'AppKeyBearing': distanceAndBearing.bearing
