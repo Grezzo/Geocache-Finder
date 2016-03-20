@@ -11,16 +11,16 @@ module.exports.stopLocationUpdates = stopLocationUpdates;
 
 //Patterns for parsing the result of a (detailed) search:
 var PATTERN_LATLON = /<span id="uxLatLon"[^>]*>(.*?)<\/span>/;
-//var PATTERN_NAME = /<span id="ctl00_ContentBody_CacheName">\W*(.*?)\W*<\/span>/;
+//var PATTERN_NAME = /<span id="ctl00_ContentBody_CacheName">\s*(.*?)\s*<\/span>/;
 
 //Pattern for parsing the logged in user:
-var PATTERN_LOGIN_NAME = /class="li-user-info"[^>]*>\W*?<span>(.*?)<\/span>/;
+var PATTERN_LOGIN_NAME = /class="li-user-info"[^>]*>\s*?<span>(.*?)<\/span>/;
 
 //Patterns for parsing the result of a search:
-var PATTERN_SEARCH_GEOCODE = /\|\W*(GC[0-9A-Z]+)[^\|]*\|/;
-var PATTERN_SEARCH_DISTANCE = /<span class="small NoWrap"><img[^>]+>[NSEW]+<br \/>\W*([^<]+)\W*<\/span>/;
-var PATTERN_SEARCH_NAME = /<span>\W*([^<]+)\W*<\/span><\/a>/;
-var PATTERN_VIEWSTATES = /id="__VIEWSTATE\d*"\W*value="([^"]+)"/g;
+var PATTERN_SEARCH_GEOCODE = /\|\s*(GC[0-9A-Z]+)[^\|]*\|/;
+var PATTERN_SEARCH_DISTANCE = /<span class="small NoWrap"><img[^>]+>[NSEW]+<br \/>\s*([^<]+)\s*<\/span>/;
+var PATTERN_SEARCH_NAME = /<span>\s*([^<]+)\s*<\/span><\/a>/;
+var PATTERN_VIEWSTATES = /id="__VIEWSTATE\d*"\s*value="([^"]+)"/g;
 
 var locationWatcher; //location watcher object
 
