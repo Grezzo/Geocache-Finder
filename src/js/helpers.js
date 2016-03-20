@@ -5,11 +5,13 @@ module.exports.caseInsensitiveCompare = caseInsensitiveCompare;
 module.exports.combineArrays = combineArrays;
 
 function htmlUnescape(string) {
+  console.log(string);
   string = string.replace("&amp;", "&");
   string = string.replace("&#39;", "'");
   //could do this better. especially with numbers! Maybe get a list of entities from a node.js library
   //TODO: is &#39; not escaped if it's at the beginning like 'Hampshire Hoggin'?
   //also "#" at the beginnign seems to be dropped, see "#2 Villager: John Edgar"
+  console.log("...changed to" + string);
   return string;
 }
 

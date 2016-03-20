@@ -1,4 +1,4 @@
-#include "settings_window.h"
+#include "settings.h"
 #include "messaging.h"
 
 static Window *s_main_window;

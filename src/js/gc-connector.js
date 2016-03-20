@@ -62,6 +62,7 @@ function parseSearchResultsPage(page) {
         row.indexOf("Found It") != -1 &&
         localStorage.getItem("show_found") === "false"
       ) && (
+        // detect disabled geocaches
         row.indexOf("class=\"lnk  Strike\"") === -1
       )
     ) {

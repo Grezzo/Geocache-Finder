@@ -1,4 +1,6 @@
 #pragma once
+
+#include <pebble.h>
 #include <stdint.h>
 
 typedef enum {
@@ -16,6 +18,8 @@ typedef enum {
   AppKeyBearing,
   AppKeyStopLocationUpdates,
 } AppKey;
+
+void inbox_received_handler(DictionaryIterator *iter, void *context);
 
 void send_message(const uint32_t key);
 void send_message_with_int(const uint32_t key, int value);

@@ -67,15 +67,6 @@
                 "name": "IMAGE_LARGE_LOGO",
                 "targetPlatforms": null,
                 "type": "bitmap"
-            },
-            {
-                "characterRegex": "ABCD",
-                "file": "fonts/GeocachingLogo.ttf",
-                "name": "FONT_GEOCACHING_LOGO_48",
-                "targetPlatforms": [
-                    "aplite"
-                ],
-                "type": "font"
             }
         ]
     },

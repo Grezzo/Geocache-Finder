@@ -1,5 +1,5 @@
 #include <pebble.h>
-#include "cache_direction_window.h"
+#include "cache_details.h"
 #include "messaging.h"
 #include "arrow_layer.h"
 
@@ -106,7 +106,7 @@ static void handle_window_unload(Window* window) {
   send_message(AppKeyStopLocationUpdates);
 }
 
-void show_cache_direction_window(char *geocode) {
+void show_cache_details(char *geocode) {
   Window *window = window_create();
   window_set_window_handlers(window, (WindowHandlers) {
     .load = handle_window_load,
@@ -116,7 +116,7 @@ void show_cache_direction_window(char *geocode) {
   send_message_with_string(AppKeyGetCacheDetails, geocode);
 }
 
-void hide_cache_direction_window(void) {
+void hide_cache_details(void) {
   Window* window = window_stack_get_top_window();
   window_stack_remove(window, true);
 }
