@@ -1,5 +1,6 @@
 /*globals require*/ //Stop complaining about require being undefined!
 var gc = require("gc-connector");
+var helper = require("helpers");
 
 /*globals module*/ //Stop complaining about module being undefined!
 module.exports.showConfigWindow = showConfigWindow;
@@ -16,7 +17,7 @@ input[type=text], input[type=password] {\n\
   height: 44px;\n\
   font-size: 17px;\n\
 }\n\
-input[type=checkbox] {\n\
+input[type=checkbox], input[type=radio] {\n\
  width: 44px;\n\
  height: 44px;\n\
 }\n\
@@ -51,7 +52,8 @@ window.addEventListener(\"DOMContentLoaded\", function() {\n\
       'username': document.getElementById(\"username\").value,\n\
       'password': document.getElementById(\"password\").value,\n\
       'show_premium': document.getElementById(\"show_premium\").checked,\n\
-      'show_found': document.getElementById(\"show_found\").checked\n\
+      'show_found': document.getElementById(\"show_found\").checked,\n\
+      'metric': document.getElementById(\"metric\").checked\n\
     };\n\
     // Set the return URL depending on the runtime environment\n\
     var return_to = getQueryParam('return_to', 'pebblejs://close#');\n\
@@ -89,6 +91,12 @@ If you don't have a password (i.e. you normally log in using Facebook), you will
 </tr><tr>\n\
 <td>Show Found Caches</td>\n\
 <td><input type=\"checkbox\" id=\"show_found\"" + (localStorage.getItem("show_found") === "true" ? " checked" : "") + "></td>\n\
+</tr><tr>\n\
+<td>Metric</td>\n\
+<td><input type=\"radio\" value=\"metric\" name=\"units\" id=\"metric\"" + (localStorage.getItem("metric") === "true" ? " checked" : "") + "></td>\n\
+</tr><tr>\n\
+<td>Imperial</td>\n\
+<td><input type=\"radio\" value=\"imperial\" name=\"units\" id=\"imperial\"" + (localStorage.getItem("metric") === "false" ? " checked" : "") + "></td>\n\
 </tr></table>\n\
 <input type=\"button\" value=\"Save\" id=\"saveButton\">\n\
 </body></html><!--\
@@ -108,6 +116,12 @@ function processConfig(e) {
     // Decode and parse config data as JSON
     var config_data = JSON.parse(decodeURIComponent(e.response));
     if (config_data.update_login) {
+      if (
+        (localStorage.getItem("username") === null) ||
+        !helper.caseInsensitiveCompare(localStorage.getItem("username"), config_data.username)
+      ) {
+        localStorage.setItem("username", config_data.username);
+      }
       localStorage.setItem("username", config_data.username);
       localStorage.setItem("password", config_data.password);
     }
@@ -115,6 +129,8 @@ function processConfig(e) {
     //emulator will converts to "True"/"False" when saving, and phone will convert to "true"/"false".
     localStorage.setItem("show_premium", config_data.show_premium.toString());
     localStorage.setItem("show_found", config_data.show_found.toString());
+    localStorage.setItem("metric", config_data.metric.toString());
+
     console.log("Config updated");
     gc.logInToGeocaching();
   }
@@ -123,13 +139,14 @@ function processConfig(e) {
 function sendSettings() {
   Pebble.sendAppMessage({
     'AppKeyUsername': localStorage.getItem("username"),
+    // Localstorage is always a string, so need to compate to string "true"
     'AppKeyShowPremium': (localStorage.getItem("show_premium") === "true"),
-    'AppKeyShowFound': (localStorage.getItem("show_found") === "true")},
-                        function(e) {
-                          console.log('Sent settings to watch');
-                        },
-                        function(e) {
-                          console.log('Failed to send settings to watch.' +
-                                      ' Error is: ' + e.data.error.message);
-                        });
+    'AppKeyShowFound': (localStorage.getItem("show_found") === "true"),
+    'AppKeyMetric': (localStorage.getItem("metric") === "true")
+  }, function(e) {
+    console.log('Sent settings to watch');
+  }, function(e) {
+    console.log('Failed to send settings to watch.' +
+                ' Error is: ' + e.data.error.message);
+  });
 }

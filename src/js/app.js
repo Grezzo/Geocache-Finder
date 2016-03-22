@@ -1,15 +1,29 @@
 /*
   TODO: Test on Android (cookies may not be passed on xmlHttpRequests, and config page may not load)
   currently tries to log if as null is not configured
+  
+detect premium user
+ - https://www.geocaching.com/account/settings/membership
+ - /<dt>Membership<\/dt>\s*<dd>\s*(.*)\s*<\/dd>/
+ - will be "Basic", or "Premium" or "Charter" (charter is premium since start)
+ - check for premium or charter, fall back to basic
 
-        be able to choose miles or kilometers
 detect no username/password
 detect no config
 check username/password on config update and reject if necesarry
-        keep searching until 20 caches found AFTER filter applied
         log in before getting cache details
-        save username as proper case (it does when reconfigured with new username, but if username is not changed, it's saved in case that it was typed in, not what GC returns);
- accuracy is always in m (even if non metric is selected)       
+ 
+ 
+ If matches then user is logged in:
+ - PATTERN_MAP_LOGGED_IN = Pattern.compile("<a href=\"https?://www.geocaching.com/my/\" class=\"CommonUsername\"");
+
+Username:
+ - on login page
+   - PATTERN_LOGIN_NAME_LOGIN_PAGE = Pattern.compile("ctl00_ContentBody_lbUsername\">.*<strong>(.*)</strong>");
+ - on any other page
+   - PATTERN_LOGIN_NAME = Pattern.compile("class=\"li-user-info\"[^>]*>.*?<span>(.*?)</span>", Pattern.DOTALL);
+
+
 */
 
 
@@ -71,6 +85,10 @@ Pebble.addEventListener('appmessage', function(e) {
   } else if ('AppKeySetShowFound' in e.payload) {
     console.log("...and it says to " + (e.payload.AppKeySetShowFound ? "show" : "hide") + " found caches");
     localStorage.setItem("show_found", e.payload.AppKeySetShowFound ? "true" : "false");
+    
+  } else if ('AppKeySetMetric' in e.payload) {
+    console.log("...and it says to use " + (e.payload.AppKeySetMetric ? "metric" : "imperial"));
+    localStorage.setItem("metric", e.payload.AppKeySetMetric ? "true" : "false");
     
   } else if ('AppKeyStopLocationUpdates' in e.payload) {
     console.log("...and it says to stop getting location updates");

@@ -21,6 +21,7 @@ void inbox_received_handler(DictionaryIterator *iter, void *context) {
   Tuple *username_tuple = dict_find(iter, AppKeyUsername);
   Tuple *show_premium_tuple = dict_find(iter, AppKeyShowPremium);
   Tuple *show_found_tuple = dict_find(iter, AppKeyShowFound);
+  Tuple *metric_tuple = dict_find(iter, AppKeyMetric);
   Tuple *distance_tuple = dict_find(iter, AppKeyDistance);
   Tuple *bearing_tuple = dict_find(iter, AppKeyBearing);
 
@@ -44,7 +45,8 @@ void inbox_received_handler(DictionaryIterator *iter, void *context) {
     char* username = username_tuple->value->cstring;
     bool show_premium = *show_premium_tuple->value->data;
     bool show_found = *show_found_tuple->value->data;
-    show_settings_window(username, show_premium, show_found);
+    bool metric = *metric_tuple->value->data;
+    show_settings_window(username, show_premium, show_found, metric);
     
   } else if(distance_tuple) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "...containing distance, bearing & accuracy");

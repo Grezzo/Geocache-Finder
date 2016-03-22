@@ -89,7 +89,7 @@ static void handle_window_load(Window *window) {
     bounds.size.w,
     31
   ));
-  text_layer_set_font(s_textlayer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
+  text_layer_set_font(s_textlayer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
   text_layer_set_text_alignment(s_textlayer, GTextAlignmentCenter);
   text_layer_set_text(s_textlayer, "Getting cache details...");
   layer_add_child(window_layer, (Layer *)s_textlayer);

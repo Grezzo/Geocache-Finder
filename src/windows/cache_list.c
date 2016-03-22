@@ -8,7 +8,7 @@ static Geocache s_geocaches[20];
 //search results windw
 static Window *s_menu_window;
 static MenuLayer *s_menu_layer;
-
+static StatusBarLayer *s_status_bar_layer;
 
 
 
@@ -59,8 +59,17 @@ static int16_t menu_get_cell_height(MenuLayer *menu_layer, MenuIndex *cell_index
 
 static void menu_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
+
+  s_status_bar_layer = status_bar_layer_create();
+  layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar_layer));
+  
   GRect bounds = layer_get_bounds(window_layer);
-  s_menu_layer = menu_layer_create(bounds);
+  s_menu_layer = menu_layer_create(GRect(
+    0,
+    STATUS_BAR_LAYER_HEIGHT,
+    bounds.size.w,
+    bounds.size.h - STATUS_BAR_LAYER_HEIGHT
+  ));
   
   menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks){
     .get_num_rows = menu_get_num_rows_callback,
@@ -75,6 +84,7 @@ static void menu_window_load(Window *window) {
 }
 
 static void menu_window_unload(Window *window) {
+  status_bar_layer_destroy(s_status_bar_layer);
   // Destroy MenuLayer
   menu_layer_destroy(s_menu_layer);
   window_destroy(s_menu_window);

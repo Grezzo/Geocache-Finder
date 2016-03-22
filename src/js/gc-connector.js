@@ -21,11 +21,25 @@ var PATTERN_SEARCH_GEOCODE = /\|\s*(GC[0-9A-Z]+)[^\|]*\|/;
 var PATTERN_SEARCH_DISTANCE = /<span class="small NoWrap"><img[^>]+>[NSEW]+<br \/>\s*([^<]+)\s*<\/span>/;
 var PATTERN_SEARCH_NAME = /<span>\s*([^<]+)\s*<\/span><\/a>/;
 var PATTERN_VIEWSTATES = /id="__VIEWSTATE\d*"\s*value="([^"]+)"/g;
+var PATTERN_METRIC_TEST = /<span id="ctl00_ContentBody_UnitTxt">\s*Distance Measured in Kilometers\s*<\/span>/;
 
 var locationWatcher; //location watcher object
 
 function stopLocationUpdates() {
   navigator.geolocation.clearWatch(locationWatcher);
+}
+
+function toggleMetricSearchResults(viewstates) {
+  var req = new XMLHttpRequest();
+  //We don't need location if we have a viewstate
+  req.open("POST", "https://www.geocaching.com/seek/nearest.aspx", false);
+  var formData = constructFormDataForNextPage(
+    {__EVENTTARGET: "ctl00$ContentBody$lnkUnitType"},
+    viewstates);
+  req.send(formData);
+  if (req.status === 200) {
+    return req.responseText;
+  }
 }
 
 function parseSearchResultsPage(page) {
@@ -37,6 +51,11 @@ function parseSearchResultsPage(page) {
     viewstates.push(viewstate[1]);
   }
 
+  //Switch units if necesarry
+  if ((localStorage.getItem("metric") === "true") === (page.match(PATTERN_METRIC_TEST) === null)) {
+    console.log('Toggling metric/imperial');
+    page = toggleMetricSearchResults(viewstates);
+  }
   
   //Get geocaches
   var geocaches = [];  
@@ -80,10 +99,8 @@ function parseSearchResultsPage(page) {
 }
 
 
-function constructFormDataForNextPage(viewstates) {
-  var formData = "__EVENTTARGET=" + encodeURIComponent("ctl00$ContentBody$pgrTop$ctl08") +
-    "&__VIEWSTATEFIELDCOUNT=" + viewstates.length;
-
+function constructFormDataForNextPage(properties, viewstates) {
+  var formData = "__VIEWSTATEFIELDCOUNT=" + viewstates.length;
   viewstates.forEach(function(viewstate, index) {
     formData += "&__VIEWSTATE";
     if (index > 0) {
@@ -91,10 +108,11 @@ function constructFormDataForNextPage(viewstates) {
     }
     formData += "=" + encodeURIComponent(viewstate);
   });
-  
+  Object.keys(properties).forEach(function(key) {
+    formData += "&" + encodeURIComponent(key) + "=" + encodeURIComponent(properties[key]);
+  });
   return formData;
 }
-
 
 
 
@@ -112,7 +130,10 @@ function getCachesNearCoords(coords) {
       var reply = parseSearchResultsPage(req.responseText);
       //Add new geocaches to list
       geocacheList = helper.combineArrays(geocacheList, reply.geocaches);
-      formData = constructFormDataForNextPage(reply.viewstates);
+      formData = constructFormDataForNextPage(
+        {__EVENTTARGET: "ctl00$ContentBody$pgrTop$ctl08"},
+        reply.viewstates
+      );
     }
   }
   geocacheList = geocacheList.slice(0, 20);
@@ -144,11 +165,33 @@ function getCacheDetails(geocode) {
       currPosition.coords.latitude,
       currPosition.coords.longitude,
       destCoords.latitude,
-      destCoords.longitude,
-      true
+      destCoords.longitude
     );
+      
+   var distance; // String representing distance in "human readable"" format
+   var accuracy; // String representing accuracy in "human readable"" format
+   if (localStorage.getItem("metric") === "true") {
+     accuracy = Math.round(currPosition.coords.accuracy) + "m";
+     if (distanceAndBearing.distance < 1000) {
+       distance = Math.round(distanceAndBearing.distance) + "m";
+     } else {
+       distance = (distanceAndBearing.distance / 1000).toFixed(2) + "km";
+     }
+   } else {
+     var metresInYard = 0.9144; // Length of a yard in metres
+     accuracy = Math.round(currPosition.coords.accuracy / metresInYard) + "yd";
+     var yards = distanceAndBearing.distance / metresInYard;
+     var yardsInMile = 1760; //Number of yards in a mile
+     if (yards < yardsInMile) {
+       distance = Math.round(yards) + "yd";
+     } else {
+       distance = (yards / yardsInMile).toFixed(2) + "mi";
+     }
+   }
+      
+      
     Pebble.sendAppMessage({
-      'AppKeyDistance': distanceAndBearing.distance + " ± " + /*Math.round(*/currPosition.coords.accuracy/*)*/ + "m",
+      'AppKeyDistance': distance + " ± " + accuracy,
       'AppKeyBearing': distanceAndBearing.bearing
     },
                           function(e) {
@@ -171,7 +214,10 @@ function getLoggedInUser() {
     if (match === null) {
       return null;
     } else {
-      return match[1];
+      var loggedInUser = match[1];
+      // Update saved username with one from page because case will be correct
+      localStorage.setItem("username", loggedInUser);
+      return loggedInUser;
     }
   }
 }
@@ -215,15 +261,12 @@ function logInToGeocaching() {
       "&ctl00$ContentBody$tbPassword=" + localStorage.getItem("password") +
       "&ctl00$ContentBody$cbRememberMe=on&ctl00$ContentBody$btnSignIn=Login";
   req.open("POST", "https://www.geocaching.com/login/default.aspx", false);
-  //Send the proper header information along with the request
+  //Send the header information along with the request
   req.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  req.setRequestHeader("Content-length", params.length);
-  req.setRequestHeader("Connection", "close");
   req.send(params);
   loggedInUser = getLoggedInUser();
   if (loggedInUser) {
     console.log("Logged in as " + loggedInUser);
-    localStorage.setItem("username", loggedInUser);
     return true;
   } else {
     console.log("Failed to log in");

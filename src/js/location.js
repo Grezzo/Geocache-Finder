@@ -1,8 +1,11 @@
 /*globals module*/ //Stop complaining about module being undefined!
 module.exports.distanceAndBearing = distanceAndBearing;
 
-var metresInYard = 0.9144; // Length of a yard in metres
-var yardsInMile = 1760; //Number of yards in a mile
+///*globals require*/ //Stop complaining about require being undefined!
+//var helper = require("helpers");
+
+//var metresInYard = 0.9144; // Length of a yard in metres
+//var yardsInMile = 1760; //Number of yards in a mile
 var R = 6371000; // Radius of the earth in metres
 
 function toRadians(degrees) {
@@ -13,7 +16,7 @@ function toDegrees(radians) {
   return radians * (180 / Math.PI);
 }
 
-function distanceAndBearing(currLat, currLon, destLat, destLon, metric) {
+function distanceAndBearing(currLat, currLon, destLat, destLon) {
   var deltaLat = toRadians(destLat-currLat);
   var deltaLon = toRadians(destLon-currLon);
 
@@ -24,21 +27,24 @@ function distanceAndBearing(currLat, currLon, destLat, destLon, metric) {
   var a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) + Math.sin(deltaLon/2) * Math.sin(deltaLon/2) * Math.cos(currLatRad) * Math.cos(destLatRad);
   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
   var metres = R * c;
-  var yards = metres / metresInYard;
-  var distance; // String representing distance in "human readable"" format
-  if (metric) {
-    if (metres < 1000) {
-      distance = Math.round(metres) + "m";
-    } else {
-      distance = (metres / 1000).toFixed(2) + "km";
-    }
-  } else {
-    if (yards < yardsInMile) {
-      distance = Math.round(yards) + "yd";
-    } else {
-      distance = (yards / yardsInMile).toFixed(2) + "mi";
-    }
-  }
+  
+  
+  var distance = metres;
+//   var yards = helper.metresToYards(metres);
+//   var distance; // String representing distance in "human readable"" format
+//   if (metric) {
+//     if (metres < 1000) {
+//       distance = Math.round(metres) + "m";
+//     } else {
+//       distance = (metres / 1000).toFixed(2) + "km";
+//     }
+//   } else {
+//     if (yards < yardsInMile) {
+//       distance = Math.round(yards) + "yd";
+//     } else {
+//       distance = (yards / yardsInMile).toFixed(2) + "mi";
+//     }
+//   }
   
   //Get bearing
   var y = Math.sin(deltaLon) * Math.cos(destLatRad);

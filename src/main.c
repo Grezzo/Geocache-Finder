@@ -18,7 +18,7 @@ TODO:
  - detect connection to phone going away
  - shrink message buffers and coords string array size (possibly?)
  - hide actionbar icons until phone connected
- - show status bar on every window (so time and battery level can be seen)
+ - add battery level to show status bar on every window with action bar
  - make unusable unless credentials saved
  - display message if unable to log in
 */

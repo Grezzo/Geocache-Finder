@@ -12,35 +12,23 @@ static GBitmap *s_tick_white_bitmap;
 
 static char text[40];
 
-static bool s_selections[2];
+static bool s_selections[3];
 
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
-  return 2;
+  return 3;
 }
 
-static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context) {
-  // Choice item
-  switch (cell_index->row) {
-    case 0:
-      menu_cell_basic_draw(ctx, cell_layer, "Show Premium", NULL, NULL);
-      break;
-    case 1:
-      menu_cell_basic_draw(ctx, cell_layer, "Show Found", NULL, NULL);
-      break;
-  }
-  
-  // Selected?
-  GBitmap *ptr = s_tick_black_bitmap;
+static void draw_checkbox_in_cell(GContext *ctx, const Layer *cell_layer, bool checked) {
+  // Draw in white if selected
+  GBitmap *tick = s_tick_black_bitmap;
   if(menu_cell_layer_is_highlighted(cell_layer)) {
     graphics_context_set_stroke_color(ctx, GColorWhite);
-    ptr = s_tick_white_bitmap;
+    tick = s_tick_white_bitmap;
   }
-
-  GRect bounds = layer_get_bounds(cell_layer);
-  GRect bitmap_bounds = gbitmap_get_bounds(ptr);
   
   // Draw checkbox
+  GRect bounds = layer_get_bounds(cell_layer);
   GRect r = GRect(
     bounds.size.w - (2 * CHECKBOX_WINDOW_BOX_SIZE),
     (bounds.size.h / 2) - (CHECKBOX_WINDOW_BOX_SIZE / 2),
@@ -49,9 +37,33 @@ static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex 
   graphics_draw_rect(ctx, r);
   
   // Draw Tick
-  if(s_selections[cell_index->row]) {
+  if(checked) {
+    GRect bitmap_bounds = gbitmap_get_bounds(tick);
     graphics_context_set_compositing_mode(ctx, GCompOpSet);
-    graphics_draw_bitmap_in_rect(ctx, ptr, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
+    graphics_draw_bitmap_in_rect(ctx, tick, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
+  }
+}
+
+static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context) {
+  int row = cell_index->row;
+  // Choice item
+  switch (row) {
+    case 0:
+      menu_cell_basic_draw(ctx, cell_layer, "Show Premium", NULL, NULL);
+      draw_checkbox_in_cell(ctx, cell_layer, s_selections[row]);
+      break;
+    case 1:
+      menu_cell_basic_draw(ctx, cell_layer, "Show Found", NULL, NULL);
+      draw_checkbox_in_cell(ctx, cell_layer, s_selections[row]);
+      break;
+    case 2: {
+      char *units_string = "Units: Imperial";
+      if (s_selections[row]) {
+        units_string = "Units: Metric";
+      }
+      menu_cell_basic_draw(ctx, cell_layer, units_string, NULL, NULL);
+      break;
+    }
   }
 }
 
@@ -61,7 +73,17 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
   s_selections[row] = !s_selections[row];
   menu_layer_reload_data(menu_layer);
   //Send settings to javascript
-  send_message_with_int(row == 0 ? AppKeySetShowPremium : AppKeySetShowFound, s_selections[row]);
+  switch (row) {
+    case 0:
+      send_message_with_int(AppKeySetShowPremium, s_selections[row]);
+      break;
+    case 1:
+      send_message_with_int(AppKeySetShowFound, s_selections[row]);
+      break;
+    case 2:
+      send_message_with_int(AppKeySetMetric, s_selections[row]);
+      break;
+  }
 }
 
 static void window_load(Window *window) {
@@ -95,10 +117,11 @@ static void window_unload(Window *window) {
   window_destroy(window);
 }
 
-void show_settings_window(char* username, bool show_premium, bool show_found) {
+void show_settings_window(char* username, bool show_premium, bool show_found, bool metric) {
   snprintf(text, 30, "User: %s", username);
   s_selections[0] = show_premium;
   s_selections[1] = show_found;
+  s_selections[2] = metric;
   s_main_window = window_create();
   window_set_window_handlers(s_main_window, (WindowHandlers) {
     .load = window_load,

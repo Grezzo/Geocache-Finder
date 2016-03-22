@@ -17,6 +17,8 @@ typedef enum {
   AppKeyDistance,
   AppKeyBearing,
   AppKeyStopLocationUpdates,
+  AppKeyMetric,
+  AppKeySetMetric,
 } AppKey;
 
 void inbox_received_handler(DictionaryIterator *iter, void *context);
