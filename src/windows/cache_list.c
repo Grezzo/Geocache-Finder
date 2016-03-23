@@ -4,6 +4,9 @@
 #include "windows/cache_details.h"
 #include "windows/home.h"
 
+#define TITLE_FONT FONT_KEY_GOTHIC_24_BOLD
+#define SUBTITLE_FONT FONT_KEY_GOTHIC_18
+
 static Geocache s_geocaches[20];
 //search results windw
 static Window *s_menu_window;
@@ -42,9 +45,9 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
   }
   GRect bounds = layer_get_bounds(cell_layer);
   GRect title_box = GRect(3, 0, bounds.size.w - 6, bounds.size.h);
-  graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), title_box, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-  GRect subtitle_box = GRect(3, bounds.size.h - 19 , bounds.size.w - 6, 19);
-  graphics_draw_text(ctx, subtitle, fonts_get_system_font(FONT_KEY_GOTHIC_14), subtitle_box, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+  graphics_draw_text(ctx, title, fonts_get_system_font(TITLE_FONT), title_box, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+  GRect subtitle_box = GRect(3, bounds.size.h - 22 , bounds.size.w - 6, 19);
+  graphics_draw_text(ctx, subtitle, fonts_get_system_font(SUBTITLE_FONT), subtitle_box, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
 }
 
 static int16_t menu_get_cell_height(MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
@@ -53,8 +56,14 @@ static int16_t menu_get_cell_height(MenuLayer *menu_layer, MenuIndex *cell_index
 
   GRect bounds = layer_get_bounds(menu_layer_get_layer(menu_layer));
   GRect title_box = GRect(3, 0, bounds.size.w - 6, 100);
-  GSize text_size = graphics_text_layout_get_content_size(title, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), title_box, GTextOverflowModeWordWrap, GTextAlignmentLeft);
-  return text_size.h + 19;
+  GSize text_size = graphics_text_layout_get_content_size(
+    title,
+    fonts_get_system_font(TITLE_FONT),
+    title_box,
+    GTextOverflowModeWordWrap,
+    GTextAlignmentLeft
+  );
+  return text_size.h + 22;
 }
 
 static void menu_window_load(Window *window) {
